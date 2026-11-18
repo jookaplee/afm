@@ -18,6 +18,7 @@ import {
 import * as D from '../../../shared/dates.ts';
 import type { AccountRow, CampaignPerformance, DealRow, LeadRow, Paged } from '../../../shared/types.ts';
 import { api, ApiError } from '../lib/api.ts';
+import { errorMessage } from '../lib/errors.ts';
 import { useConfirm, useMeta, useToast } from '../lib/app-context.tsx';
 import { useI18n } from '../lib/i18n.tsx';
 import { Field, Modal } from './ui.tsx';
@@ -49,7 +50,7 @@ function useForm(initial: Values) {
         setErrors(e.fields);
         setFormError(t('error.validation'));
       } else {
-        setFormError(e instanceof Error && e.message ? e.message : t('error.generic'));
+        setFormError(errorMessage(e, t));
       }
     } finally {
       setBusy(false);

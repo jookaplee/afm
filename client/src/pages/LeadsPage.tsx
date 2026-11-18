@@ -7,6 +7,7 @@ import { api } from '../lib/api.ts';
 import { useApi } from '../lib/useApi.ts';
 import { useDebounced } from '../lib/useDebounced.ts';
 import { useI18n } from '../lib/i18n.tsx';
+import { errorMessage } from '../lib/errors.ts';
 import { useMeta, useToast } from '../lib/app-context.tsx';
 import { downloadCsv } from '../lib/csv.ts';
 import { CAN_DOWNLOAD } from '../lib/env.ts';
@@ -44,7 +45,7 @@ export default function LeadsPage() {
       toast(t('leads.statusChanged'));
       reload();
     } catch (err) {
-      toast((err as Error).message || t('error.generic'), 'bad');
+      toast(errorMessage(err, t), 'bad');
     }
   };
 

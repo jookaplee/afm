@@ -7,6 +7,7 @@ import { api } from '../lib/api.ts';
 import { useApi } from '../lib/useApi.ts';
 import { useDebounced } from '../lib/useDebounced.ts';
 import { useI18n } from '../lib/i18n.tsx';
+import { errorMessage } from '../lib/errors.ts';
 import { useMeta, useToast } from '../lib/app-context.tsx';
 import { ErrorState, Loading, PageHeader, SearchInput, SelectFilter, StageBadge } from '../components/ui.tsx';
 import { DealFormModal, LostReasonModal } from '../components/forms.tsx';
@@ -60,7 +61,7 @@ export default function PipelinePage() {
       toast(t('pipeline.moved', { deal: deal.name, stage: t(`stage.${stage}`) }));
     } catch (e) {
       setRows(before);
-      toast((e as Error).message || t('error.generic'), 'bad');
+      toast(errorMessage(e, t), 'bad');
     }
   };
 

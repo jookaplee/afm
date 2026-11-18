@@ -1,10 +1,13 @@
 export class ApiError extends Error {
   status: number;
   fields: Record<string, string>;
-  constructor(status: number, message: string, fields: Record<string, string> = {}) {
+  /** Machine-readable reason, e.g. "read_only" or "persist_failed". */
+  code?: string;
+  constructor(status: number, message: string, fields: Record<string, string> = {}, code?: string) {
     super(message);
     this.status = status;
     this.fields = fields;
+    this.code = code;
   }
 }
 
@@ -25,8 +28,8 @@ async function request<T>(method: string, path: string, body?: unknown, signal?:
     const { localRequest } = await import('../standalone/local-api.ts');
     const res = await localRequest(method, path, body);
     if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
-    const data = (res.body ?? {}) as { error?: string; details?: { fields?: Record<string, string> } };
-    if (res.status >= 400) throw new ApiError(res.status, data.error ?? 'Error', data.details?.fields ?? {});
+    const data = (res.body ?? {}) as { error?: string; code?: string; details?: { fields?: Record<string, string> } };
+    if (res.status >= 400) throw new ApiError(res.status, data.error ?? 'Error', data.details?.fields ?? {}, data.code);
     return res.body as T;
   }
   const res = await fetch(`/api${path}`, {

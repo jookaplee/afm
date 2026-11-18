@@ -2,6 +2,9 @@ import { lazy, Suspense, useEffect, useState, type ComponentType } from 'react';
 import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import {
   Building2,
+  Cloud,
+  CloudOff,
+  Eye,
   Columns3,
   Handshake,
   Languages,
@@ -17,10 +20,12 @@ import {
   UserPlus,
 } from 'lucide-react';
 import { useI18n } from './lib/i18n.tsx';
+import { errorMessage } from './lib/errors.ts';
 import { useConfirm, useMeta, useTheme, useToast } from './lib/app-context.tsx';
 import { STANDALONE } from './lib/env.ts';
 import { api } from './lib/api.ts';
 import { Loading } from './components/ui.tsx';
+import { useApi } from './lib/useApi.ts';
 
 const OverviewPage = lazy(() => import('./pages/OverviewPage.tsx'));
 const SalesPage = lazy(() => import('./pages/SalesPage.tsx'));
@@ -82,11 +87,14 @@ export function App() {
       setResetKey((k) => k + 1);
       toast(t('toast.resetDone'));
     } catch (e) {
-      toast((e as Error).message || t('error.generic'), 'bad');
+      toast(errorMessage(e, t), 'bad');
     }
   };
 
   const ThemeIcon = mode === 'dark' ? Moon : mode === 'light' ? Sun : Monitor;
+  const persistence = useApi<{ mode: 'cloud' | 'memory' | 'readonly' }>(STANDALONE ? '/_persistence' : null, { k: resetKey });
+  const pmode = persistence.data?.mode;
+  const PersistIcon = pmode === 'cloud' ? Cloud : pmode === 'readonly' ? Eye : CloudOff;
 
   return (
     <div className={`shell ${navOpen ? 'nav-open' : ''}`}>
@@ -117,6 +125,12 @@ export function App() {
           ))}
         </nav>
         <div className="sidebar-footer">
+          {pmode && (
+            <div className="persist-note" title={t(`persist.${pmode}Hint`)} role="status">
+              <PersistIcon aria-hidden />
+              <span>{t(`persist.${pmode}`)}</span>
+            </div>
+          )}
           <div className="row">
             {!STANDALONE && (
               <button className="btn sm" style={{ flex: 1 }} onClick={cycle} title={t(`theme.${mode}`)}>

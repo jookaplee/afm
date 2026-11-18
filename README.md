@@ -71,9 +71,17 @@ npm run build:standalone   # → dist-standalone/afm-dashboard.html (satu fail, 
 Versi ini menjalankan pangkalan data SQLite **dalam pelayar** (sql.js, binaan asm.js tanpa
 WebAssembly) dan menggunakan logik API yang sama dengan pelayan. Fail HTML tunggal itu boleh
 dihoskan di mana-mana hos statik (cth. claude.ai Artifact, GitHub Pages, S3) dan dibuka dalam
-Safari, Chrome atau Firefox. Data demo dijana semasa halaman dibuka; perubahan disimpan dalam
-memori sahaja dan hilang apabila halaman dimuat semula. Butang eksport CSV disembunyikan dalam
-versi ini kerana hos statik biasanya menyekat muat turun.
+Safari, Chrome atau Firefox. Butang eksport CSV disembunyikan dalam versi ini kerana hos statik
+biasanya menyekat muat turun.
+
+**Penyimpanan perubahan.** Apabila dibuka sebagai claude.ai Artifact yang diberi kemampuan `db`,
+setiap perubahan (tambah, sunting, padam, pindah peringkat, tukar lead) disimpan sebagai jurnal
+dalam pangkalan data artifact. Semasa halaman dibuka, data demo dijana semula daripada tarikh asas
+yang sama lalu jurnal dimainkan semula, jadi rekod dan ID kekal sama selepas muat semula dan pada
+peranti lain. "Set semula data demo" memulakan set data baharu. Penonton yang hanya ada akses lihat
+boleh membaca data tetapi tidak boleh menyimpan perubahan. Di hos lain (tanpa `db`), perubahan
+kekal dalam memori sahaja; status penyimpanan dipaparkan di bahagian bawah bar sisi.
+Butiran: `client/src/standalone/persistence.ts` dan `local-api.ts`.
 
 ### Sokongan pelayar
 
