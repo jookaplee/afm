@@ -296,7 +296,7 @@ export function seed(db: Db, opts: SeedOptions): SeedSummary {
   const reps: Rep[] = REP_SEED.map(([name, role, team], i) => ({
     id: i + 1,
     name,
-    email: `${name.toLowerCase().replace(/\s+/g, '.')}@afm.example`,
+    email: `${name.toLowerCase().replace(/\s+/g, '.')}@joosons.example`,
     role,
     team,
     active: 1,

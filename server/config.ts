@@ -7,7 +7,7 @@ export const config = {
   root,
   port: Number(process.env.PORT ?? 3001),
   dbPath: process.env.DB_PATH ?? resolve(root, 'data', 'afm.db'),
-  appName: process.env.APP_NAME ?? 'AFM',
+  appName: process.env.APP_NAME ?? 'JOOSONS',
   /** Override "today" (YYYY-MM-DD) for reproducible demos and tests. */
   today: process.env.TODAY,
   /** Allow POST /api/admin/reset (re-generates demo data). Disabled in production unless set. */

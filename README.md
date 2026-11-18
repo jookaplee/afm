@@ -1,4 +1,4 @@
-# AFM · Papan Pemuka Jualan & Pemasaran B2B
+# JOOSONS · Papan Pemuka Jualan & Pemasaran B2B
 
 Sistem papan pemuka Jualan & Pemasaran untuk syarikat B2B: memantau hasil berbanding sasaran,
 pipeline, ramalan suku tahun, prestasi pasukan jualan, keberkesanan saluran & kempen pemasaran,
@@ -97,7 +97,7 @@ halaman (bukan `window.confirm`).
 |---|---|---|
 | `PORT` | `3001` | Port pelayan API |
 | `DB_PATH` | `data/afm.db` | Lokasi fail SQLite |
-| `APP_NAME` | `AFM` | Nama yang dipaparkan di bar sisi |
+| `APP_NAME` | `JOOSONS` | Nama yang dipaparkan di bar sisi |
 | `ALLOW_RESET` | `true` semasa pembangunan, `false` di produksi | Membenarkan `POST /api/admin/reset` |
 | `TODAY` | tarikh hari ini | Tetapkan "hari ini" (YYYY-MM-DD) untuk demo/ujian yang boleh diulang |
 

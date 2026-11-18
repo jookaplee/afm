@@ -69,7 +69,7 @@ export async function createLocalApi(deps: { SQL: SqlJsStatic; store: Store | nu
     db = wrapSqlJs(raw);
     initSchema(db);
     seed(db, { today: seedDate });
-    handle = createRouter({ db, today: () => replayDate ?? today(), appName: 'AFM', allowReset: true }).handle;
+    handle = createRouter({ db, today: () => replayDate ?? today(), appName: 'JOOSONS', allowReset: true }).handle;
     anchor = seedDate;
     let failed = 0;
     for (const c of changes) if (apply(c).status >= 400) failed++;

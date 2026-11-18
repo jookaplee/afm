@@ -59,7 +59,7 @@ export function createRouter(opts: RouterOptions) {
     const range = db.prepare('SELECT MIN(created_at) AS min, MAX(created_at) AS max FROM deals').get() as { min: string | null; max: string | null };
     const body: MetaResponse = {
       today: today(),
-      appName: opts.appName ?? 'AFM',
+      appName: opts.appName ?? 'JOOSONS',
       reps: db.prepare('SELECT * FROM reps ORDER BY role, name').all() as unknown as MetaResponse['reps'],
       campaigns: db.prepare('SELECT id, name, channel, status FROM campaigns ORDER BY start_date DESC').all() as unknown as MetaResponse['campaigns'],
       dataRange: { min: range.min ?? today(), max: range.max ?? today() },

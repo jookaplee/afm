@@ -15,7 +15,7 @@ const read = (p) => readFileSync(join(dir, p), 'utf8');
 const script = read(js[0]).replace(/<\/script/gi, '<\\/script');
 const styles = css.map(read).join('\n').replace(/<\/style/gi, '<\\/style');
 
-const page = `<title>Papan Pemuka AFM</title>
+const page = `<title>Papan Pemuka JOOSONS</title>
 <meta name="color-scheme" content="light dark">
 <meta name="description" content="Papan pemuka Jualan &amp; Pemasaran B2B (demo kendiri, data dijana dalam pelayar).">
 <style>${styles}</style>
