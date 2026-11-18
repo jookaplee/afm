@@ -9,7 +9,7 @@ import { useDebounced } from '../lib/useDebounced.ts';
 import { useI18n } from '../lib/i18n.tsx';
 import { errorMessage } from '../lib/errors.ts';
 import { useMeta, useToast } from '../lib/app-context.tsx';
-import { ErrorState, Loading, PageHeader, SearchInput, SelectFilter, StageBadge } from '../components/ui.tsx';
+import { ErrorState, Loading, PageHeader, SearchInput, SelectFilter, StageBadge, Switch } from '../components/ui.tsx';
 import { DealFormModal, LostReasonModal } from '../components/forms.tsx';
 
 const MAX_CARDS = 40;
@@ -100,10 +100,7 @@ export default function PipelinePage() {
         </select>
         <SelectFilter label={t('col.segment')} value={segment} onChange={setSegment} options={SEGMENTS} allLabel={t('filter.allSegments')} render={(v) => t(`segment.${v}`)} />
         <SelectFilter label={t('col.region')} value={region} onChange={setRegion} options={REGIONS} allLabel={t('filter.allRegions')} render={(v) => t(`region.${v}`)} />
-        <label className="legend-item" style={{ marginLeft: 4 }}>
-          <input type="checkbox" checked={showClosed} onChange={(e) => setShowClosed(e.target.checked)} />
-          {t('pipeline.showClosed')}
-        </label>
+        <Switch checked={showClosed} onChange={setShowClosed} label={t('pipeline.showClosed')} />
       </div>
       <p className="sr-only">{t('pipeline.dragHint')}</p>
 

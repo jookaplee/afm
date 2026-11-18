@@ -22,6 +22,7 @@ export default function SalesPage() {
         key: 'name',
         header: t('col.rep'),
         sortValue: (r) => r.name,
+        nowrap: true,
         render: (r) => (
           <div>
             <div className="cell-main">{r.name}</div>

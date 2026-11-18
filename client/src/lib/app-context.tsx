@@ -5,7 +5,7 @@ import { api } from './api.ts';
 import { load, save } from './storage.ts';
 import { useI18n } from './i18n.tsx';
 import { OWN_THEME } from './env.ts';
-import { Modal } from '../components/ui.tsx';
+import { Alert } from '../components/ui.tsx';
 
 // ---------- Meta (reps, campaigns, business date) ----------
 
@@ -156,23 +156,15 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
     <ConfirmContext.Provider value={ask}>
       {children}
       {req && (
-        <Modal
+        <Alert
           title={t('common.confirmTitle')}
-          onClose={() => done(false)}
-          width={440}
-          footer={
-            <div className="row">
-              <button type="button" className="btn" onClick={() => done(false)}>
-                {t('common.cancel')}
-              </button>
-              <button type="button" className={`btn ${req.danger ? 'danger' : 'primary'}`} onClick={() => done(true)}>
-                {req.confirmLabel ?? t('common.confirm')}
-              </button>
-            </div>
-          }
-        >
-          <p style={{ margin: 0 }}>{req.message}</p>
-        </Modal>
+          message={req.message}
+          cancelLabel={t('common.cancel')}
+          confirmLabel={req.confirmLabel ?? t('common.confirm')}
+          destructive={req.danger}
+          onCancel={() => done(false)}
+          onConfirm={() => done(true)}
+        />
       )}
     </ConfirmContext.Provider>
   );

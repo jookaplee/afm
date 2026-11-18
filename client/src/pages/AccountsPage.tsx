@@ -10,7 +10,7 @@ import { useI18n } from '../lib/i18n.tsx';
 import { useToast } from '../lib/app-context.tsx';
 import { downloadCsv } from '../lib/csv.ts';
 import { CAN_DOWNLOAD } from '../lib/env.ts';
-import { ErrorState, PageHeader, Pager, SearchInput, SelectFilter } from '../components/ui.tsx';
+import { ErrorState, PageHeader, Pager, SearchInput, SelectFilter, Switch } from '../components/ui.tsx';
 import { BarList, ChartCard, SERIES, SegmentedBar, StatTile } from '../components/charts.tsx';
 import { DataTable, type Column, type SortState } from '../components/DataTable.tsx';
 import { AccountFormModal } from '../components/forms.tsx';
@@ -185,10 +185,7 @@ export default function AccountsPage() {
       <section className="card">
         <div className="table-toolbar">
           <SearchInput value={search} onChange={setSearch} />
-          <label className="legend-item">
-            <input type="checkbox" checked={customers} onChange={(e) => setCustomers(e.target.checked)} />
-            {t('accounts.customersOnly')}
-          </label>
+          <Switch checked={customers} onChange={setCustomers} label={t('accounts.customersOnly')} />
         </div>
         {list.error && !list.data ? (
           <ErrorState onRetry={list.reload} />

@@ -1,17 +1,18 @@
 import { lazy, Suspense, useEffect, useState, type ComponentType } from 'react';
-import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import {
   Building2,
+  ChevronRight,
   Cloud,
   CloudOff,
-  Eye,
-  HardDrive,
   Columns3,
+  Eye,
   Handshake,
+  HardDrive,
   Languages,
   LayoutDashboard,
+  LayoutGrid,
   Megaphone,
-  Menu,
   Monitor,
   Moon,
   RefreshCcw,
@@ -25,7 +26,7 @@ import { errorMessage } from './lib/errors.ts';
 import { useConfirm, useMeta, useTheme, useToast } from './lib/app-context.tsx';
 import { OWN_THEME, STANDALONE } from './lib/env.ts';
 import { api } from './lib/api.ts';
-import { Loading } from './components/ui.tsx';
+import { Loading, Modal } from './components/ui.tsx';
 import { useApi } from './lib/useApi.ts';
 
 const OverviewPage = lazy(() => import('./pages/OverviewPage.tsx'));
@@ -38,10 +39,29 @@ const CampaignsPage = lazy(() => import('./pages/CampaignsPage.tsx'));
 const AccountsPage = lazy(() => import('./pages/AccountsPage.tsx'));
 const AccountDetailPage = lazy(() => import('./pages/AccountDetailPage.tsx'));
 
+type Icon = ComponentType<{ 'aria-hidden'?: boolean }>;
+
 interface NavItem {
   to: string;
   label: string;
-  icon: ComponentType<{ 'aria-hidden'?: boolean }>;
+  icon: Icon;
+  /** Colour of the icon tile (macOS System Settings style). */
+  tile: string;
+}
+
+const DASHBOARDS = ['/', '/sales', '/marketing'];
+
+/** Dashboard filters carry over between the three dashboards; data pages start clean. */
+function keepFilters(from: string, search: string, to: string): string {
+  return DASHBOARDS.includes(from) && DASHBOARDS.includes(to) ? search : '';
+}
+
+function NavTile({ icon: I, color }: { icon: Icon; color: string }) {
+  return (
+    <span className="nav-tile" style={{ background: color }} aria-hidden>
+      <I aria-hidden />
+    </span>
+  );
 }
 
 export function App() {
@@ -51,41 +71,42 @@ export function App() {
   const toast = useToast();
   const confirm = useConfirm();
   const location = useLocation();
-  const [navOpen, setNavOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [resetKey, setResetKey] = useState(0);
 
-  useEffect(() => setNavOpen(false), [location.pathname]);
+  useEffect(() => setMoreOpen(false), [location.pathname]);
   useEffect(() => {
     document.title = `${meta.appName} · ${t('app.subtitle')}`;
   }, [meta.appName, t]);
 
-  const groups: { label: string; items: NavItem[] }[] = [
-    {
-      label: t('nav.dashboards'),
-      items: [
-        { to: '/', label: t('nav.overview'), icon: LayoutDashboard },
-        { to: '/sales', label: t('nav.sales'), icon: TrendingUp },
-        { to: '/marketing', label: t('nav.marketing'), icon: Megaphone },
-      ],
-    },
-    {
-      label: t('nav.manage'),
-      items: [
-        { to: '/pipeline', label: t('nav.pipeline'), icon: Columns3 },
-        { to: '/deals', label: t('nav.deals'), icon: Handshake },
-        { to: '/leads', label: t('nav.leads'), icon: UserPlus },
-        { to: '/campaigns', label: t('nav.campaigns'), icon: Target },
-        { to: '/accounts', label: t('nav.accounts'), icon: Building2 },
-      ],
-    },
+  const dashboards: NavItem[] = [
+    { to: '/', label: t('nav.overview'), icon: LayoutDashboard, tile: 'var(--tile-blue)' },
+    { to: '/sales', label: t('nav.sales'), icon: TrendingUp, tile: 'var(--tile-green)' },
+    { to: '/marketing', label: t('nav.marketing'), icon: Megaphone, tile: 'var(--tile-orange)' },
   ];
+  const manage: NavItem[] = [
+    { to: '/pipeline', label: t('nav.pipeline'), icon: Columns3, tile: 'var(--tile-indigo)' },
+    { to: '/deals', label: t('nav.deals'), icon: Handshake, tile: 'var(--tile-teal)' },
+    { to: '/leads', label: t('nav.leads'), icon: UserPlus, tile: 'var(--tile-pink)' },
+    { to: '/campaigns', label: t('nav.campaigns'), icon: Target, tile: 'var(--tile-purple)' },
+    { to: '/accounts', label: t('nav.accounts'), icon: Building2, tile: 'var(--tile-gray)' },
+  ];
+  const groups = [
+    { label: t('nav.dashboards'), items: dashboards },
+    { label: t('nav.manage'), items: manage },
+  ];
+  // Phone tab bar: four destinations + "More" (iOS caps a tab bar at five).
+  const tabItems = [...dashboards, manage[0]];
+  const moreItems = manage.slice(1);
+  const inMore = moreItems.some((it) => location.pathname.startsWith(it.to));
 
   const resetData = async () => {
-    if (!(await confirm({ message: t('confirm.reset'), confirmLabel: t('action.resetData') }))) return;
+    if (!(await confirm({ message: t('confirm.reset'), confirmLabel: t('action.resetData'), danger: true }))) return;
     try {
       await api.post('/admin/reset', {});
       reload();
       setResetKey((k) => k + 1);
+      setMoreOpen(false);
       toast(t('toast.resetDone'));
     } catch (e) {
       toast(errorMessage(e, t), 'bad');
@@ -96,16 +117,28 @@ export function App() {
   const persistence = useApi<{ mode: 'cloud' | 'device' | 'memory' | 'readonly' }>(STANDALONE ? '/_persistence' : null, { k: resetKey });
   const pmode = persistence.data?.mode;
   const PersistIcon = pmode === 'cloud' ? Cloud : pmode === 'device' ? HardDrive : pmode === 'readonly' ? Eye : CloudOff;
+  const persistNote = pmode && (
+    <div className="persist-note" title={t(`persist.${pmode}Hint`)} role="status">
+      <PersistIcon aria-hidden />
+      <span>{t(`persist.${pmode}`)}</span>
+    </div>
+  );
 
   return (
-    <div className={`shell ${navOpen ? 'nav-open' : ''}`}>
+    <div className="shell">
       <aside className="sidebar" aria-label={t('nav.aria')}>
         <div className="brand">
           <svg className="brand-mark" viewBox="0 0 32 32" aria-hidden>
-            <rect width="32" height="32" rx="8" fill="var(--accent)" />
-            <rect x="7" y="17" width="4" height="8" rx="1.5" fill="var(--on-accent)" />
-            <rect x="14" y="12" width="4" height="13" rx="1.5" fill="var(--on-accent)" />
-            <rect x="21" y="7" width="4" height="18" rx="1.5" fill="var(--on-accent)" />
+            <defs>
+              <linearGradient id="brand-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor="#3a95ff" />
+                <stop offset="1" stopColor="#0062e0" />
+              </linearGradient>
+            </defs>
+            <rect width="32" height="32" rx="8" fill="url(#brand-grad)" />
+            <rect x="7" y="17" width="4" height="8" rx="2" fill="#fff" />
+            <rect x="14" y="12" width="4" height="13" rx="2" fill="#fff" />
+            <rect x="21" y="7" width="4" height="18" rx="2" fill="#fff" />
           </svg>
           <div>
             <div className="brand-name">{meta.appName}</div>
@@ -117,8 +150,13 @@ export function App() {
             <div className="nav-group" key={g.label}>
               <div className="nav-label">{g.label}</div>
               {g.items.map((it) => (
-                <NavLink key={it.to} to={{ pathname: it.to, search: keepFilters(location.pathname, location.search, it.to) }} end={it.to === '/'} className="nav-link">
-                  <it.icon aria-hidden />
+                <NavLink
+                  key={it.to}
+                  to={{ pathname: it.to, search: keepFilters(location.pathname, location.search, it.to) }}
+                  end={it.to === '/'}
+                  className="nav-link"
+                >
+                  <NavTile icon={it.icon} color={it.tile} />
                   {it.label}
                 </NavLink>
               ))}
@@ -126,12 +164,7 @@ export function App() {
           ))}
         </nav>
         <div className="sidebar-footer">
-          {pmode && (
-            <div className="persist-note" title={t(`persist.${pmode}Hint`)} role="status">
-              <PersistIcon aria-hidden />
-              <span>{t(`persist.${pmode}`)}</span>
-            </div>
-          )}
+          {persistNote}
           <div className="row">
             {OWN_THEME && (
               <button className="btn sm" style={{ flex: 1 }} onClick={cycle} title={t(`theme.${mode}`)}>
@@ -150,39 +183,79 @@ export function App() {
           </button>
         </div>
       </aside>
-      <div className="scrim" onClick={() => setNavOpen(false)} aria-hidden />
-      <div>
-        <div className="topbar">
-          <button className="btn icon" onClick={() => setNavOpen(true)} aria-label={t('nav.menu')}>
-            <Menu aria-hidden />
-          </button>
-          <strong>{meta.appName}</strong>
-          <span className="muted">{t('app.subtitle')}</span>
-        </div>
-        <main className="main" key={resetKey}>
-          <Suspense fallback={<Loading />}>
-            <Routes>
-              <Route path="/" element={<OverviewPage />} />
-              <Route path="/sales" element={<SalesPage />} />
-              <Route path="/marketing" element={<MarketingPage />} />
-              <Route path="/pipeline" element={<PipelinePage />} />
-              <Route path="/deals" element={<DealsPage />} />
-              <Route path="/leads" element={<LeadsPage />} />
-              <Route path="/campaigns" element={<CampaignsPage />} />
-              <Route path="/accounts" element={<AccountsPage />} />
-              <Route path="/accounts/:id" element={<AccountDetailPage />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </Suspense>
-        </main>
-      </div>
+
+      <main className="main" key={resetKey}>
+        <Suspense fallback={<Loading />}>
+          <Routes>
+            <Route path="/" element={<OverviewPage />} />
+            <Route path="/sales" element={<SalesPage />} />
+            <Route path="/marketing" element={<MarketingPage />} />
+            <Route path="/pipeline" element={<PipelinePage />} />
+            <Route path="/deals" element={<DealsPage />} />
+            <Route path="/leads" element={<LeadsPage />} />
+            <Route path="/campaigns" element={<CampaignsPage />} />
+            <Route path="/accounts" element={<AccountsPage />} />
+            <Route path="/accounts/:id" element={<AccountDetailPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+      </main>
+
+      {/* iOS tab bar (phones) */}
+      <nav className="tabbar" aria-label={t('nav.aria')}>
+        {tabItems.map((it) => (
+          <NavLink
+            key={it.to}
+            to={{ pathname: it.to, search: keepFilters(location.pathname, location.search, it.to) }}
+            end={it.to === '/'}
+            className="tab-item"
+          >
+            <it.icon aria-hidden />
+            {it.label}
+          </NavLink>
+        ))}
+        <button className={`tab-item ${inMore ? 'active' : ''}`} onClick={() => setMoreOpen(true)} aria-haspopup="dialog">
+          <LayoutGrid aria-hidden />
+          {t('nav.more')}
+        </button>
+      </nav>
+
+      {moreOpen && (
+        <Modal title={t('nav.more')} onClose={() => setMoreOpen(false)}>
+          <div className="sheet-stack">
+            <div className="list-group">
+              {moreItems.map((it) => (
+                <Link key={it.to} to={it.to} className="list-row">
+                  <NavTile icon={it.icon} color={it.tile} />
+                  {it.label}
+                  <ChevronRight className="chev" aria-hidden />
+                </Link>
+              ))}
+            </div>
+            <div>
+              <div className="list-group">
+                {OWN_THEME && (
+                  <button className="list-row" onClick={cycle}>
+                    <NavTile icon={ThemeIcon} color="var(--tile-indigo)" />
+                    {t('theme.label')}
+                    <span className="value">{t(`theme.name.${mode}`)}</span>
+                  </button>
+                )}
+                <button className="list-row" onClick={() => setLang(lang === 'ms' ? 'en' : 'ms')}>
+                  <NavTile icon={Languages} color="var(--tile-blue)" />
+                  {t('lang.label')}
+                  <span className="value">{lang === 'ms' ? 'Bahasa Malaysia' : 'English'}</span>
+                </button>
+                <button className="list-row" onClick={resetData} style={{ color: 'var(--critical-text)' }}>
+                  <NavTile icon={RefreshCcw} color="var(--tile-pink)" />
+                  {t('action.resetData')}
+                </button>
+              </div>
+              {persistNote && <div className="list-caption">{persistNote}</div>}
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
-}
-
-const DASHBOARDS = ['/', '/sales', '/marketing'];
-
-/** Dashboard filters carry over between the three dashboards; data pages start clean. */
-function keepFilters(from: string, search: string, to: string): string {
-  return DASHBOARDS.includes(from) && DASHBOARDS.includes(to) ? search : '';
 }

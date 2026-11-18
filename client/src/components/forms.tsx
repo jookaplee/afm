@@ -87,23 +87,15 @@ function FormShell({
     <Modal
       title={title}
       onClose={onClose}
-      footer={
-        <>
-          {onDelete && (
-            <button type="button" className="btn danger" onClick={onDelete} disabled={busy}>
-              <Trash2 aria-hidden />
-              {t('common.delete')}
-            </button>
-          )}
-          <div className="row">
-            <button type="button" className="btn" onClick={onClose}>
-              {t('common.cancel')}
-            </button>
-            <button type="submit" form={formId} className="btn primary" disabled={busy}>
-              {submitLabel ?? t('common.save')}
-            </button>
-          </div>
-        </>
+      start={
+        <button type="button" className="btn plain" onClick={onClose}>
+          {t('common.cancel')}
+        </button>
+      }
+      end={
+        <button type="submit" form={formId} className="btn plain strong" disabled={busy}>
+          {submitLabel ?? t('common.save')}
+        </button>
       }
     >
       <form
@@ -121,6 +113,14 @@ function FormShell({
         )}
         <div className="form-grid">{children}</div>
       </form>
+      {onDelete && (
+        <div style={{ marginTop: 22 }}>
+          <button type="button" className="modal-delete" onClick={onDelete} disabled={busy}>
+            <Trash2 aria-hidden />
+            {t('common.delete')}
+          </button>
+        </div>
+      )}
     </Modal>
   );
 }
@@ -153,6 +153,7 @@ function EnumSelect({
     </select>
   );
 }
+
 
 // ---------- Account combobox (server-side search) ----------
 

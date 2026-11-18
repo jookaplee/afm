@@ -10,7 +10,6 @@ import {
   Info,
   PlayCircle,
   Search,
-  X,
   XCircle,
 } from 'lucide-react';
 import { useI18n } from '../lib/i18n.tsx';
@@ -187,13 +186,15 @@ export function Tabs<T extends string>({
   items: { key: T; label: string; count?: number }[];
 }) {
   return (
-    <div className="tabs" role="tablist">
-      {items.map((it) => (
-        <button key={it.key} role="tab" className="tab" aria-selected={value === it.key} onClick={() => onChange(it.key)}>
-          {it.label}
-          {it.count !== undefined && <span className="count">{it.count}</span>}
-        </button>
-      ))}
+    <div className="tabs-wrap">
+      <div className="tabs" role="tablist">
+        {items.map((it) => (
+          <button key={it.key} role="tab" className="tab" aria-selected={value === it.key} onClick={() => onChange(it.key)}>
+            {it.label}
+            {it.count !== undefined && <span className="count">{it.count}</span>}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -250,24 +251,30 @@ export function Modal({
   children,
   footer,
   width,
+  start,
+  end,
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
   width?: number;
+  /** Leading header action (e.g. Cancel). */
+  start?: ReactNode;
+  /** Trailing header action (e.g. Save). Defaults to a "Done" button that closes. */
+  end?: ReactNode;
 }) {
   const { t } = useI18n();
   const ref = useRef<HTMLDivElement>(null);
   const titleId = useId();
   useEffect(() => {
     const prev = document.activeElement as HTMLElement | null;
-    const first = ref.current?.querySelector<HTMLElement>('input, select, textarea, button:not(.modal-x)');
+    const first = ref.current?.querySelector<HTMLElement>('.modal-body input, .modal-body select, .modal-body textarea, .modal-body a[href], .modal-body button');
     first?.focus();
     const token = {};
     MODAL_STACK.push(token);
     const onKey = (e: KeyboardEvent) => {
-      // Only the top-most dialog handles keys (a confirm can sit on top of a form).
+      // Only the top-most dialog handles keys (an alert can sit on top of a sheet).
       if (MODAL_STACK[MODAL_STACK.length - 1] !== token) return;
       if (e.key === 'Escape') onClose();
       if (e.key === 'Tab' && ref.current) {
@@ -295,15 +302,86 @@ export function Modal({
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal" role="dialog" aria-modal="true" aria-labelledby={titleId} ref={ref} style={width ? { maxWidth: width } : undefined}>
         <div className="modal-head">
+          <div className="start">{start}</div>
           <h2 id={titleId}>{title}</h2>
-          <button className="btn ghost icon modal-x" onClick={onClose} aria-label={t('common.close')}>
-            <X aria-hidden />
-          </button>
+          <div className="end">
+            {end ?? (
+              <button type="button" className="btn plain strong" onClick={onClose}>
+                {t('common.done')}
+              </button>
+            )}
+          </div>
         </div>
         <div className="modal-body">{children}</div>
         {footer && <div className="modal-foot">{footer}</div>}
       </div>
     </div>
+  );
+}
+
+/** iOS-style alert: a short question with two choices. */
+export function Alert({
+  title,
+  message,
+  cancelLabel,
+  confirmLabel,
+  destructive,
+  onCancel,
+  onConfirm,
+}: {
+  title: string;
+  message: string;
+  cancelLabel: string;
+  confirmLabel: string;
+  destructive?: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const titleId = useId();
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const prev = document.activeElement as HTMLElement | null;
+    ref.current?.querySelector<HTMLElement>('button')?.focus();
+    const token = {};
+    MODAL_STACK.push(token);
+    const onKey = (e: KeyboardEvent) => {
+      if (MODAL_STACK[MODAL_STACK.length - 1] !== token) return;
+      if (e.key === 'Escape') onCancel();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      MODAL_STACK.splice(MODAL_STACK.indexOf(token), 1);
+      prev?.focus();
+    };
+  }, [onCancel]);
+  return (
+    <div className="alert-backdrop">
+      <div className="alert" role="alertdialog" aria-modal="true" aria-labelledby={titleId} ref={ref}>
+        <div className="alert-body">
+          <h2 id={titleId}>{title}</h2>
+          <p>{message}</p>
+        </div>
+        <div className="alert-actions">
+          <button type="button" onClick={onCancel}>
+            {cancelLabel}
+          </button>
+          <button type="button" className={destructive ? 'destructive' : undefined} onClick={onConfirm}>
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** iOS switch with a visible label. */
+export function Switch({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
+  return (
+    <label className="switch-row">
+      <input type="checkbox" role="switch" className="switch" checked={checked} onChange={(e) => onChange(e.target.checked)} aria-checked={checked} />
+      {label}
+    </label>
   );
 }
 
