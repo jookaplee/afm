@@ -1,42 +1,42 @@
-# AFM · Sales & Marketing B2B Dashboard
+# AFM · Papan Pemuka Jualan & Pemasaran B2B
 
-Sistem dasbor Sales & Marketing untuk perusahaan B2B: memantau pendapatan vs target, pipeline,
-forecast kuartal, performa tim sales, efektivitas channel & kampanye marketing, serta mengelola
-data deal, lead, kampanye, dan akun — semuanya dalam satu aplikasi.
+Sistem papan pemuka Jualan & Pemasaran untuk syarikat B2B: memantau hasil berbanding sasaran,
+pipeline, ramalan suku tahun, prestasi pasukan jualan, keberkesanan saluran & kempen pemasaran,
+serta mengurus data urus niaga, lead, kempen dan akaun — semuanya dalam satu aplikasi.
 
-Antarmuka tersedia dalam **Bahasa Indonesia** dan **English** (tombol di sidebar), mendukung
-**mode terang/gelap**, dan nominal ditampilkan dalam **Rupiah** (`Rp 1,2 M`, `Rp 450 jt`).
+Antara muka tersedia dalam **Bahasa Malaysia** dan **English** (butang di bar sisi), menyokong
+**mod cerah/gelap**, dan nilai dipaparkan dalam **Ringgit Malaysia** (`RM1.2J`, `RM450K`).
 
-## Fitur
+## Ciri-ciri
 
-### Dasbor (analitik)
-Semua dasbor memiliki satu baris filter: **periode** (30/90 hari, kuartal ini/lalu, tahun ini,
-12 bulan, tahun lalu, rentang kustom), **segmen**, **wilayah**, dan (di Penjualan) **sales rep**.
-Setiap KPI dibandingkan dengan periode sebelumnya yang sama panjang dan disertai tren (sparkline).
-Filter disimpan di URL sehingga tampilan bisa dibagikan.
+### Papan pemuka (analitik)
+Setiap papan pemuka mempunyai satu baris penapis: **tempoh** (30/90 hari lepas, suku tahun ini/lepas,
+tahun ini, 12 bulan lepas, tahun lepas, julat tersuai), **segmen**, **kawasan** dan (di halaman Jualan)
+**jurujual**. Setiap KPI dibandingkan dengan tempoh sebelumnya yang sama panjang dan disertakan
+trend (sparkline). Penapis disimpan dalam URL supaya paparan boleh dikongsi.
 
-| Halaman | Isi |
+| Halaman | Kandungan |
 |---|---|
-| **Ringkasan** | Pendapatan vs target (hero + meter), pipeline baru, win rate, rata-rata nilai deal, siklus penjualan, lead baru, konversi MQL→SQL, CAC, ROI marketing; grafik pendapatan vs target, funnel lead → pelanggan, pendapatan per sumber, pipeline per tahap, deal besar yang akan closing |
-| **Penjualan** | Pencapaian kuota, forecast kuartal berjalan (closed won / commit / best case / pipeline vs kuota, proyeksi tertimbang, coverage), papan peringkat AE, win rate per segmen, alasan kalah, pendapatan per produk, deal berisiko (lewat tanggal closing / stagnan) |
-| **Pemasaran** | Belanja, lead, CPL, MQL, pipeline & pendapatan dari marketing, ROI, CAC; lead per channel, funnel, pipeline per channel, sumber pipeline, tabel efisiensi channel, performa kampanye (ekspor CSV) |
+| **Ringkasan** | Hasil berbanding sasaran (angka utama + meter), pipeline baharu, kadar kemenangan, purata nilai urus niaga, kitaran jualan, lead baharu, penukaran MQL→SQL, CAC, ROI pemasaran; carta hasil berbanding sasaran, corong lead → pelanggan, hasil mengikut sumber, pipeline mengikut peringkat, urus niaga terbesar yang akan ditutup |
+| **Jualan** | Pencapaian kuota, ramalan suku tahun semasa (dimenangi / komited / kes terbaik / pipeline berbanding kuota, unjuran berwajaran, liputan pipeline), papan pendahulu AE, kadar kemenangan mengikut segmen, sebab kalah, hasil mengikut produk, urus niaga berisiko (lewat tarikh tutup / tergendala) |
+| **Pemasaran** | Perbelanjaan, lead, kos setiap lead, MQL, pipeline & hasil daripada pemasaran, ROI, CAC; lead mengikut saluran, corong, pipeline mengikut saluran, sumber pipeline, jadual kecekapan saluran, prestasi kempen (eksport CSV) |
 
-Setiap grafik punya tombol **tampilan tabel**, tooltip saat hover/fokus keyboard, dan palet
-warna yang sudah divalidasi aman untuk buta warna (terang & gelap).
+Setiap carta mempunyai butang **paparan jadual**, tooltip semasa hover/fokus papan kekunci, dan palet
+warna yang telah disahkan selamat untuk buta warna (mod cerah & gelap).
 
-### Kelola data
-| Halaman | Isi |
+### Urus data
+| Halaman | Kandungan |
 |---|---|
-| **Pipeline** | Papan kanban — seret kartu untuk memindah tahap (deal kalah meminta alasan) |
-| **Deal** | Tabel dengan tab terbuka/menang/kalah, pencarian, filter, sortir, paginasi, tambah/ubah/hapus, ekspor CSV |
-| **Lead** | Kualifikasi (Baru → MQL → SQL), **konversi ke deal** (akun dibuat otomatis), diskualifikasi, ekspor CSV |
-| **Kampanye** | Budget, realisasi belanja, lead, MQL/SQL, pipeline, pendapatan, ROI per kampanye |
-| **Akun** | Basis akun ABM (tier 1/2/3), pendapatan per industri & segmen, detail akun dengan deal, lead, dan riwayat aktivitas |
+| **Pipeline** | Papan kanban — seret kad untuk memindahkan peringkat (urus niaga kalah memerlukan sebab) |
+| **Urus niaga** | Jadual dengan tab terbuka/menang/kalah, carian, penapis, isihan, penomboran halaman, tambah/sunting/padam, eksport CSV |
+| **Lead** | Kelayakan (Baharu → MQL → SQL), **tukar kepada urus niaga** (akaun dicipta secara automatik), tandakan tidak layak, eksport CSV |
+| **Kempen** | Bajet, perbelanjaan sebenar, lead, MQL/SQL, pipeline, hasil dan ROI setiap kempen |
+| **Akaun** | Pangkalan akaun ABM (tier 1/2/3), hasil mengikut industri & segmen, butiran akaun dengan urus niaga, lead dan sejarah aktiviti |
 
-## Menjalankan
+## Cara menjalankan
 
-Prasyarat: **Node.js 22.18+** (atau 24+). Tidak ada database eksternal — data disimpan di SQLite
-bawaan Node (`node:sqlite`) pada `data/afm.db`.
+Prasyarat: **Node.js 22.18+** (atau 24+). Tiada pangkalan data luaran — data disimpan dalam SQLite
+terbina dalam Node (`node:sqlite`) di `data/afm.db`.
 
 ```bash
 npm install
@@ -47,79 +47,84 @@ Produksi:
 
 ```bash
 npm run build
-npm start          # server + aplikasi di http://localhost:3001
+npm start          # pelayan + aplikasi di http://localhost:3001
 ```
 
-Saat pertama kali dijalankan, database kosong otomatis diisi **data demo realistis**
-(~2,5 tahun riwayat: 14 sales/SDR, ±600 akun, ±80 kampanye, ±4.600 lead, ±950 deal, aktivitas),
-yang selalu diselaraskan dengan tanggal hari ini. Buat ulang kapan saja:
+Pada kali pertama dijalankan, pangkalan data kosong akan diisi secara automatik dengan **data demo
+yang realistik** untuk syarikat perisian B2B di Malaysia (±2.5 tahun sejarah: 14 jurujual/SDR,
+±600 akaun "Sdn Bhd/Berhad", ±80 kempen, ±4,600 lead, ±950 urus niaga, aktiviti), di seluruh
+Lembah Klang, Zon Utara, Zon Selatan, Pantai Timur, Sabah dan Sarawak. Data sentiasa diselaraskan
+dengan tarikh hari ini. Jana semula pada bila-bila masa:
 
 ```bash
-npm run seed       # atau tombol "Reset data demo" di sidebar (non-produksi)
+npm run seed       # atau butang "Set semula data demo" di bar sisi (bukan produksi)
 ```
 
-Perintah lain: `npm test` (tes API), `npm run typecheck`.
+Arahan lain: `npm test` (ujian API), `npm run typecheck`.
 
-### Konfigurasi (environment variable)
+### Konfigurasi (pemboleh ubah persekitaran)
 
-| Variabel | Default | Keterangan |
+| Pemboleh ubah | Lalai | Keterangan |
 |---|---|---|
-| `PORT` | `3001` | Port server API |
-| `DB_PATH` | `data/afm.db` | Lokasi file SQLite |
-| `APP_NAME` | `AFM` | Nama yang tampil di sidebar |
-| `ALLOW_RESET` | `true` di dev, `false` di produksi | Mengizinkan `POST /api/admin/reset` |
-| `TODAY` | tanggal hari ini | Paksa "hari ini" (YYYY-MM-DD) untuk demo/tes yang dapat diulang |
+| `PORT` | `3001` | Port pelayan API |
+| `DB_PATH` | `data/afm.db` | Lokasi fail SQLite |
+| `APP_NAME` | `AFM` | Nama yang dipaparkan di bar sisi |
+| `ALLOW_RESET` | `true` semasa pembangunan, `false` di produksi | Membenarkan `POST /api/admin/reset` |
+| `TODAY` | tarikh hari ini | Tetapkan "hari ini" (YYYY-MM-DD) untuk demo/ujian yang boleh diulang |
 
 ## Definisi metrik
 
-| Metrik | Rumus |
+| Metrik | Formula |
 |---|---|
-| Pendapatan | Total nilai deal *closed won* dengan tanggal closing dalam periode |
-| Target / kuota | Kuota bulanan per AE, diprorata per hari untuk periode parsial (tidak tersedia saat filter wilayah aktif) |
-| Pipeline baru | Total nilai deal yang **dibuat** dalam periode (semua sumber) |
-| Pipeline terbuka | Semua deal yang masih terbuka saat ini (snapshot, tidak terpengaruh periode) |
-| Pipeline tertimbang | Nilai × probabilitas tahap (Prospek 10%, Kualifikasi 20%, Proposal 40%, Negosiasi 60%) |
-| Win rate | Menang ÷ (menang + kalah) untuk deal yang ditutup dalam periode |
-| Siklus penjualan | Rata-rata hari dari deal dibuat hingga menang |
-| Konversi MQL→SQL | Jumlah SQL ÷ jumlah MQL dalam periode |
-| Funnel | Kohort lead yang **masuk** dalam periode dan tahap terjauh yang dicapai |
-| Belanja marketing | Realisasi belanja kampanye dibagi rata per hari berjalan; saat filter segmen/wilayah aktif, dialokasikan proporsional terhadap jumlah lead |
-| CPL | Belanja ÷ lead baru |
-| CAC | Belanja marketing ÷ pelanggan baru (deal *bisnis baru* yang menang) |
-| ROI marketing | (Pendapatan dari deal bersumber marketing − belanja) ÷ belanja |
-| Forecast kuartal | Closed won kuartal berjalan + deal terbuka dengan perkiraan closing ≤ akhir kuartal; commit = negosiasi, best case = proposal |
+| Hasil | Jumlah nilai urus niaga *dimenangi* dengan tarikh tutup dalam tempoh |
+| Sasaran / kuota | Kuota bulanan setiap AE, diprorata mengikut hari untuk tempoh separa (tidak tersedia apabila penapis kawasan aktif) |
+| Pipeline baharu | Jumlah nilai urus niaga yang **dicipta** dalam tempoh (semua sumber) |
+| Pipeline terbuka | Semua urus niaga yang masih terbuka sekarang (kedudukan semasa, tidak dipengaruhi tempoh) |
+| Pipeline berwajaran | Nilai × kebarangkalian peringkat (Prospek 10%, Kelayakan 20%, Cadangan 40%, Rundingan 60%) |
+| Kadar kemenangan | Menang ÷ (menang + kalah) bagi urus niaga yang ditutup dalam tempoh |
+| Kitaran jualan | Purata hari dari urus niaga dicipta hingga dimenangi |
+| Penukaran MQL→SQL | Bilangan SQL ÷ bilangan MQL dalam tempoh |
+| Corong | Kohort lead yang **masuk** dalam tempoh dan peringkat terjauh yang dicapai |
+| Perbelanjaan pemasaran | Perbelanjaan sebenar kempen diagihkan sama rata setiap hari berjalan; apabila penapis segmen/kawasan aktif, diperuntukkan mengikut bahagian lead |
+| CPL | Perbelanjaan ÷ lead baharu |
+| CAC | Perbelanjaan pemasaran ÷ pelanggan baharu (urus niaga *perniagaan baharu* yang dimenangi) |
+| ROI pemasaran | (Hasil daripada urus niaga bersumberkan pemasaran − perbelanjaan) ÷ perbelanjaan |
+| Ramalan suku tahun | Urus niaga dimenangi suku tahun semasa + urus niaga terbuka dengan jangkaan tarikh tutup ≤ akhir suku tahun; komited = rundingan, kes terbaik = cadangan |
 
-## Arsitektur
+## Seni bina
 
 ```
-shared/   konstanta enum, tipe API, util tanggal (dipakai server & klien)
+shared/   pemalar enum, jenis API, utiliti tarikh (digunakan pelayan & klien)
 server/   Express 5 + node:sqlite
   db.ts         skema
-  seed.ts       generator data demo deterministik
-  analytics.ts  mesin KPI (overview, sales, marketing)
-  crud.ts       deal, lead (+konversi), kampanye, akun
-  app.ts        routing REST + penyajian build produksi
-  tests/        tes API (node:test)
+  seed.ts       penjana data demo deterministik (konteks Malaysia, RM)
+  analytics.ts  enjin KPI (ringkasan, jualan, pemasaran)
+  crud.ts       urus niaga, lead (+penukaran), kempen, akaun
+  app.ts        laluan REST + penyajian binaan produksi
+  tests/        ujian API (node:test)
 client/   React 19 + Vite + Recharts
-  lib/          i18n (ID/EN), format Rupiah, filter URL, API client
-  components/   grafik, tabel, form, filter bar
-  pages/        halaman dasbor & kelola data
+  lib/          i18n (BM/EN), format Ringgit, penapis URL, klien API
+  components/   carta, jadual, borang, baris penapis
+  pages/        halaman papan pemuka & urus data
 ```
 
-### API ringkas
+### Ringkasan API
 
 | Endpoint | Keterangan |
 |---|---|
 | `GET /api/analytics/overview` · `/sales` · `/marketing` | Parameter: `from`, `to`, `segment`, `region`, `owner` |
-| `GET/POST /api/deals`, `PATCH/DELETE /api/deals/:id` | Filter: `stage` (`open`/`closed`/tahap), `search`, `owner`, `segment`, `region`, `source`, `product`, `sort`, `dir`, `page`, `pageSize` |
-| `GET/POST /api/leads`, `PATCH/DELETE /api/leads/:id`, `POST /api/leads/:id/convert` | Filter: `status` (`active`/status), `channel`, `segment`, `owner`, `campaign` |
-| `GET/POST /api/campaigns`, `PATCH/DELETE /api/campaigns/:id` | Termasuk agregat lead/MQL/SQL/pipeline/pendapatan |
-| `GET/POST /api/accounts`, `GET /api/accounts/summary`, `GET/PATCH/DELETE /api/accounts/:id` | Detail akun menyertakan deal, lead, aktivitas |
-| `GET /api/meta` | Daftar sales, kampanye, tanggal acuan |
+| `GET/POST /api/deals`, `PATCH/DELETE /api/deals/:id` | Penapis: `stage` (`open`/`closed`/peringkat), `search`, `owner`, `segment`, `region`, `source`, `product`, `sort`, `dir`, `page`, `pageSize` |
+| `GET/POST /api/leads`, `PATCH/DELETE /api/leads/:id`, `POST /api/leads/:id/convert` | Penapis: `status` (`active`/status), `channel`, `segment`, `owner`, `campaign` |
+| `GET/POST /api/campaigns`, `PATCH/DELETE /api/campaigns/:id` | Termasuk agregat lead/MQL/SQL/pipeline/hasil |
+| `GET/POST /api/accounts`, `GET /api/accounts/summary`, `GET/PATCH/DELETE /api/accounts/:id` | Butiran akaun termasuk urus niaga, lead dan aktiviti |
+| `GET /api/meta` | Senarai jurujual, kempen dan tarikh rujukan |
 
-## Catatan & pengembangan berikutnya
+Nilai enum dalam API (cth. `klang_valley`, `negotiation`) kekal dalam bahasa Inggeris; label
+dipaparkan dalam bahasa pengguna oleh antara muka.
 
-- Belum ada autentikasi/otorisasi — tambahkan sebelum dipakai di jaringan publik.
-- Data demo dapat diganti dengan data nyata melalui API CRUD atau impor langsung ke tabel SQLite
-  (skema di `server/db.ts`). Integrasi CRM (mis. Salesforce/HubSpot) dan iklan (Google/LinkedIn Ads)
-  bisa ditambahkan sebagai job sinkronisasi yang menulis ke tabel yang sama.
+## Nota & pembangunan seterusnya
+
+- Belum ada pengesahan/kebenaran pengguna — tambah sebelum digunakan di rangkaian awam.
+- Data demo boleh digantikan dengan data sebenar melalui API CRUD atau import terus ke jadual SQLite
+  (skema di `server/db.ts`). Integrasi CRM (cth. Salesforce/HubSpot) dan iklan (Google/LinkedIn Ads)
+  boleh ditambah sebagai tugas penyegerakan yang menulis ke jadual yang sama.

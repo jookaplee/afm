@@ -4,7 +4,7 @@
 export const SEGMENTS = ['enterprise', 'midmarket', 'smb'] as const;
 export type Segment = (typeof SEGMENTS)[number];
 
-export const REGIONS = ['jabodetabek', 'java', 'sumatra', 'kalimantan', 'sulawesi_east', 'bali_nusra'] as const;
+export const REGIONS = ['klang_valley', 'northern', 'southern', 'east_coast', 'sabah', 'sarawak'] as const;
 export type Region = (typeof REGIONS)[number];
 
 export const INDUSTRIES = [

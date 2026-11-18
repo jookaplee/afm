@@ -1,5 +1,5 @@
-// Deterministic generator for realistic B2B demo data (an Indonesian B2B software
-// company). Everything is anchored to `today`, so the dashboards always show a
+// Deterministic generator for realistic B2B demo data (a Malaysian B2B software
+// company, amounts in RM). Everything is anchored to `today`, so the dashboards always show a
 // live-looking picture: ~2 years of history, open pipeline, active campaigns.
 
 import type { Db } from './db.ts';
@@ -88,65 +88,75 @@ class Rng {
 // ---------- Reference data ----------
 
 const REP_SEED: [string, 'AE' | 'SDR', Segment | 'sdr'][] = [
-  ['Andi Pratama', 'AE', 'enterprise'],
-  ['Dewi Lestari', 'AE', 'enterprise'],
-  ['Hendra Wijaya', 'AE', 'enterprise'],
-  ['Siti Rahmawati', 'AE', 'midmarket'],
-  ['Rizky Ramadhan', 'AE', 'midmarket'],
-  ['Maya Sari', 'AE', 'midmarket'],
-  ['Fajar Nugroho', 'AE', 'midmarket'],
-  ['Putri Ayu', 'AE', 'smb'],
-  ['Agus Setiawan', 'AE', 'smb'],
-  ['Nadia Putri', 'AE', 'smb'],
-  ['Yoga Prasetyo', 'SDR', 'sdr'],
-  ['Intan Permata', 'SDR', 'sdr'],
-  ['Bayu Saputra', 'SDR', 'sdr'],
-  ['Laras Wulandari', 'SDR', 'sdr'],
+  ['Aiman Hakim', 'AE', 'enterprise'],
+  ['Tan Mei Ling', 'AE', 'enterprise'],
+  ['Rajesh Nair', 'AE', 'enterprise'],
+  ['Nurul Huda', 'AE', 'midmarket'],
+  ['Jason Lim', 'AE', 'midmarket'],
+  ['Farah Aziz', 'AE', 'midmarket'],
+  ['Kumar Selvam', 'AE', 'midmarket'],
+  ['Siti Aisyah', 'AE', 'smb'],
+  ['Daniel Wong', 'AE', 'smb'],
+  ['Hafiz Rahman', 'AE', 'smb'],
+  ['Irfan Zulkifli', 'SDR', 'sdr'],
+  ['Chloe Tan', 'SDR', 'sdr'],
+  ['Kavitha Raj', 'SDR', 'sdr'],
+  ['Syafiqah Omar', 'SDR', 'sdr'],
 ];
 
 const NAME_A = [
-  'Nusa', 'Bumi', 'Cahaya', 'Mitra', 'Karya', 'Sentosa', 'Mandala', 'Prima', 'Samudra', 'Arta',
-  'Lintas', 'Mega', 'Surya', 'Bintang', 'Cipta', 'Tirta', 'Puncak', 'Harapan', 'Sinergi', 'Berkah',
-  'Wahana', 'Pilar', 'Selaras', 'Kencana', 'Mahkota', 'Buana', 'Citra', 'Dharma', 'Gemilang', 'Kreasi',
-  'Lestari', 'Makmur', 'Optima', 'Pesona', 'Rajawali', 'Sakti', 'Tunas', 'Utama', 'Visi', 'Zamrud',
+  'Seri', 'Bina', 'Perdana', 'Gemilang', 'Delima', 'Intan', 'Mutiara', 'Kenanga', 'Cempaka', 'Teratai',
+  'Wawasan', 'Murni', 'Sinar', 'Bestari', 'Harmoni', 'Tiara', 'Damai', 'Restu', 'Puncak', 'Utama',
+  'Prima', 'Sentosa', 'Makmur', 'Kukuh', 'Wira', 'Tekun', 'Jaya', 'Mega', 'Pacific', 'Orient',
+  'Summit', 'Apex', 'Vista', 'Titan', 'Synergy', 'Meridian', 'Borneo', 'Nusantara', 'Kinabalu', 'Langkawi',
 ];
 
 const NAME_B: Record<Industry, string[]> = {
-  manufacturing: ['Manufaktur', 'Industri', 'Presisi', 'Logam', 'Plastindo', 'Kemasindo'],
-  finance: ['Finansial', 'Kapital', 'Multifinance', 'Investama', 'Asuransi', 'Sekuritas'],
-  retail: ['Retailindo', 'Niaga', 'Swalayan', 'Distribusi', 'Mart', 'Konsumen'],
-  logistics: ['Logistik', 'Ekspres', 'Kargo', 'Transportasi', 'Pelayaran', 'Pergudangan'],
-  healthcare: ['Medika', 'Farma', 'Husada', 'Klinik', 'Sehat', 'Diagnostika'],
-  technology: ['Teknologi', 'Digital', 'Solusi', 'Data', 'Infotama', 'Sistem'],
-  energy: ['Energi', 'Tambang', 'Daya', 'Petro', 'Mineral', 'Power'],
-  property: ['Properti', 'Land', 'Realty', 'Konstruksi', 'Bangun', 'Graha'],
+  manufacturing: ['Industries', 'Manufacturing', 'Precision', 'Plastik', 'Packaging', 'Engineering'],
+  finance: ['Capital', 'Kewangan', 'Ventures', 'Credit', 'Insurans', 'Holdings'],
+  retail: ['Trading', 'Mart', 'Retail', 'Niaga', 'Distributors', 'Marketing'],
+  logistics: ['Logistics', 'Express', 'Freight', 'Shipping', 'Haulage', 'Warehousing'],
+  healthcare: ['Medical', 'Healthcare', 'Pharma', 'Klinik', 'Medik', 'Diagnostics'],
+  technology: ['Technology', 'Digital', 'Solutions', 'Systems', 'Data', 'Infotech'],
+  energy: ['Energy', 'Petroleum', 'Power', 'Resources', 'Oil & Gas', 'Utilities'],
+  property: ['Properties', 'Development', 'Construction', 'Realty', 'Builders', 'Land'],
 };
 
-const INDUSTRY_LABEL_ID: Record<Industry, string> = {
-  manufacturing: 'Manufaktur',
-  finance: 'Keuangan',
-  retail: 'Ritel & FMCG',
+const INDUSTRY_LABEL_MS: Record<Industry, string> = {
+  manufacturing: 'Pembuatan',
+  finance: 'Kewangan',
+  retail: 'Runcit & FMCG',
   logistics: 'Logistik',
-  healthcare: 'Kesehatan',
+  healthcare: 'Kesihatan',
   technology: 'Teknologi',
-  energy: 'Energi',
-  property: 'Properti',
+  energy: 'Tenaga',
+  property: 'Hartanah',
 };
 
-const FIRST_NAMES = [
-  'Budi', 'Sri', 'Ahmad', 'Rina', 'Eko', 'Wulan', 'Dimas', 'Ratna', 'Arif', 'Lina', 'Bambang', 'Yuni',
-  'Teguh', 'Fitri', 'Irfan', 'Mega', 'Joko', 'Ayu', 'Rudi', 'Novi', 'Hadi', 'Sari', 'Wahyu', 'Dian',
-  'Galih', 'Kartika', 'Reza', 'Anisa', 'Doni', 'Melati', 'Surya', 'Indah', 'Taufik', 'Citra', 'Yusuf', 'Rahma',
+// Malaysian names: Malay, Chinese and Indian naming patterns.
+const MALAY_FIRST = [
+  'Ahmad', 'Nurul', 'Hafiz', 'Aina', 'Syafiq', 'Hidayah', 'Faizal', 'Amira', 'Azlan', 'Farhana', 'Rizal', 'Liyana',
+  'Haziq', 'Nadia', 'Khairul', 'Aisyah', 'Zulkifli', 'Shahira', 'Firdaus', 'Izzati', 'Hakim', 'Balqis',
 ];
-const LAST_NAMES = [
-  'Santoso', 'Hidayat', 'Wibowo', 'Kurniawan', 'Saputra', 'Lestari', 'Siregar', 'Nasution', 'Gunawan',
-  'Halim', 'Pangestu', 'Susanto', 'Hartono', 'Firmansyah', 'Utami', 'Simanjuntak', 'Tanjung', 'Purnomo',
-  'Wijayakusuma', 'Harahap', 'Situmorang', 'Rahman', 'Suharto', 'Anggraini', 'Pohan', 'Sembiring',
-];
+const MALAY_FATHER = ['Rahman', 'Ismail', 'Hassan', 'Abdullah', 'Yusof', 'Ibrahim', 'Othman', 'Hamid', 'Salleh', 'Razak', 'Ali', 'Mokhtar'];
+const CHINESE_SURNAME = ['Tan', 'Lim', 'Lee', 'Wong', 'Ng', 'Chong', 'Ong', 'Teh', 'Goh', 'Chan', 'Yap', 'Low'];
+const CHINESE_GIVEN = ['Wei Ming', 'Mei Ling', 'Kah Wai', 'Siew Lan', 'Jun Hao', 'Li Ying', 'Chee Keong', 'Pei Shan', 'Boon Huat', 'Hui Min', 'Zhi Hao', 'Xin Yi'];
+const INDIAN_FIRST = ['Ramesh', 'Priya', 'Suresh', 'Kavitha', 'Arjun', 'Deepa', 'Vinod', 'Anitha', 'Ganesh', 'Shalini', 'Mohan', 'Revathi'];
+const INDIAN_FATHER = ['Kumar', 'Ramasamy', 'Subramaniam', 'Krishnan', 'Muthu', 'Pillai', 'Nair', 'Raju', 'Govindasamy', 'Arumugam'];
+
+function personName(rng: Rng): { name: string; emailLocal: string } {
+  const r = rng.next();
+  let name: string;
+  if (r < 0.55) name = `${rng.pick(MALAY_FIRST)} ${rng.pick(MALAY_FATHER)}`;
+  else if (r < 0.85) name = `${rng.pick(CHINESE_SURNAME)} ${rng.pick(CHINESE_GIVEN)}`;
+  else name = `${rng.pick(INDIAN_FIRST)} ${rng.pick(INDIAN_FATHER)}`;
+  return { name, emailLocal: name.toLowerCase().replace(/[^a-z]+/g, '.') };
+}
+
 const TITLES: Record<Segment, string[]> = {
-  enterprise: ['CIO', 'Head of IT', 'VP Operations', 'Direktur Keuangan', 'Head of Procurement', 'Chief Digital Officer'],
-  midmarket: ['IT Manager', 'Manajer Operasional', 'Finance Manager', 'HR Manager', 'Direktur Operasional', 'Head of Sales'],
-  smb: ['Owner', 'Direktur Utama', 'General Manager', 'Manajer Keuangan', 'Admin IT', 'Manajer Umum'],
+  enterprise: ['Ketua Pegawai Maklumat (CIO)', 'Ketua IT', 'Naib Presiden Operasi', 'Pengarah Kewangan', 'Ketua Perolehan', 'Ketua Pegawai Digital'],
+  midmarket: ['Pengurus IT', 'Pengurus Operasi', 'Pengurus Kewangan', 'Pengurus Sumber Manusia', 'Pengarah Operasi', 'Ketua Jualan'],
+  smb: ['Pemilik', 'Pengarah Urusan', 'Pengurus Besar', 'Pengurus Kewangan', 'Eksekutif IT', 'Pengurus Am'],
 };
 
 const SEGMENT_W: [Segment, number][] = [
@@ -155,12 +165,12 @@ const SEGMENT_W: [Segment, number][] = [
   ['smb', 0.4],
 ];
 const REGION_W: [Region, number][] = [
-  ['jabodetabek', 0.38],
-  ['java', 0.24],
-  ['sumatra', 0.14],
-  ['kalimantan', 0.09],
-  ['sulawesi_east', 0.08],
-  ['bali_nusra', 0.07],
+  ['klang_valley', 0.4],
+  ['northern', 0.17],
+  ['southern', 0.17],
+  ['east_coast', 0.08],
+  ['sabah', 0.09],
+  ['sarawak', 0.09],
 ];
 const INDUSTRY_W: [Industry, number][] = [
   ['manufacturing', 0.19],
@@ -179,10 +189,10 @@ const PRODUCT_W: [Product, number][] = [
   ['services', 0.15],
 ];
 const PRODUCT_DEAL_NAME: Record<Product, string> = {
-  platform: 'Implementasi Platform',
-  analytics: 'Modul Analytics',
-  hr: 'Modul HR & Payroll',
-  services: 'Layanan Konsultasi',
+  platform: 'Pelaksanaan Platform',
+  analytics: 'Modul Analitik',
+  hr: 'Modul HR & Gaji',
+  services: 'Perkhidmatan Perundingan',
 };
 const PRODUCT_FACTOR: Record<Product, number> = { platform: 1.15, analytics: 0.85, hr: 0.85, services: 0.55 };
 const LOST_W: [LostReason, number][] = [
@@ -194,22 +204,22 @@ const LOST_W: [LostReason, number][] = [
   ['budget', 0.1],
 ];
 const NEXT_STEP: Record<string, string[]> = {
-  prospecting: ['Jadwalkan discovery call', 'Riset stakeholder kunci', 'Kirim email perkenalan'],
-  qualification: ['Jadwalkan demo produk', 'Validasi budget & timeline', 'Kirim studi kasus industri'],
-  proposal: ['Follow-up proposal', 'Presentasi ke direksi', 'Revisi penawaran harga'],
-  negotiation: ['Finalisasi kontrak', 'Review legal & procurement', 'Negosiasi termin pembayaran'],
+  prospecting: ['Jadualkan panggilan penemuan', 'Kenal pasti pihak berkepentingan utama', 'Hantar e-mel perkenalan'],
+  qualification: ['Jadualkan demo produk', 'Sahkan bajet & garis masa', 'Hantar kajian kes industri'],
+  proposal: ['Susulan cadangan', 'Pembentangan kepada lembaga pengarah', 'Semak semula sebut harga'],
+  negotiation: ['Muktamadkan kontrak', 'Semakan perundangan & perolehan', 'Rundingan terma pembayaran'],
 };
 const ACTIVITY_SUBJECTS: Record<ActivityType, string[]> = {
-  call: ['Discovery call', 'Follow-up telepon', 'Call kualifikasi', 'Diskusi kebutuhan'],
-  email: ['Kirim proposal', 'Follow-up email', 'Kirim studi kasus', 'Konfirmasi jadwal meeting'],
-  meeting: ['Meeting stakeholder', 'Presentasi solusi', 'Negosiasi harga', 'Review kontrak'],
-  demo: ['Demo produk', 'Demo teknis', 'Workshop proof of concept'],
+  call: ['Panggilan penemuan', 'Panggilan susulan', 'Panggilan kelayakan', 'Perbincangan keperluan'],
+  email: ['Hantar cadangan', 'E-mel susulan', 'Hantar kajian kes', 'Pengesahan jadual mesyuarat'],
+  meeting: ['Mesyuarat pihak berkepentingan', 'Pembentangan penyelesaian', 'Rundingan harga', 'Semakan kontrak'],
+  demo: ['Demo produk', 'Demo teknikal', 'Bengkel bukti konsep'],
 };
 
 const SEG_PARAMS: Record<Segment, { amount: [number, number]; cycle: [number, number]; win: number; employees: [number, number] }> = {
-  enterprise: { amount: [450e6, 3.2e9], cycle: [90, 210], win: 0.22, employees: [1000, 15000] },
-  midmarket: { amount: [110e6, 650e6], cycle: [45, 110], win: 0.27, employees: [200, 999] },
-  smb: { amount: [20e6, 140e6], cycle: [18, 55], win: 0.33, employees: [15, 199] },
+  enterprise: { amount: [130e3, 920e3], cycle: [90, 210], win: 0.22, employees: [1000, 15000] },
+  midmarket: { amount: [32e3, 185e3], cycle: [45, 110], win: 0.27, employees: [200, 999] },
+  smb: { amount: [6e3, 40e3], cycle: [18, 55], win: 0.33, employees: [15, 199] },
 };
 
 interface ChannelCfg {
@@ -221,50 +231,55 @@ interface ChannelCfg {
 
 const CHANNEL_CFG: Record<Channel, ChannelCfg> = {
   linkedin: {
-    cpl: 3.2e6,
+    cpl: 900,
     mqlRate: 0.42,
     seg: [['enterprise', 0.38], ['midmarket', 0.4], ['smb', 0.22]],
     campaigns: [
       {
-        name: (q, i) => `LinkedIn ABM – ${INDUSTRY_LABEL_ID[INDUSTRIES[i % INDUSTRIES.length]]} ${q}`,
-        budget: [195e6, 299e6],
+        name: (q, i) => `LinkedIn ABM – ${INDUSTRY_LABEL_MS[INDUSTRIES[i % INDUSTRIES.length]]} ${q}`,
+        budget: [56e3, 85e3],
       },
     ],
   },
   search: {
-    cpl: 2.2e6,
+    cpl: 630,
     mqlRate: 0.35,
     seg: [['enterprise', 0.1], ['midmarket', 0.35], ['smb', 0.55]],
-    campaigns: [{ name: (q) => `Google Ads – Brand & Generic ${q}`, budget: [130e6, 221e6] }],
+    campaigns: [{ name: (q) => `Google Ads – Jenama & Generik ${q}`, budget: [37e3, 63e3] }],
   },
   events: {
-    cpl: 3.8e6,
+    cpl: 1100,
     mqlRate: 0.5,
     seg: [['enterprise', 0.4], ['midmarket', 0.4], ['smb', 0.2]],
     campaigns: [
-      { name: (q) => `Seri Webinar ${q}`, budget: [78e6, 143e6] },
-      { name: (q) => `Pameran & Roadshow ${q}`, budget: [156e6, 286e6], window: 'month' },
+      { name: (q) => `Siri Webinar ${q}`, budget: [22e3, 41e3] },
+      { name: (q) => `Pameran & Jelajah ${q}`, budget: [45e3, 82e3], window: 'month' },
     ],
   },
   email: {
-    cpl: 0.5e6,
+    cpl: 140,
     mqlRate: 0.3,
     seg: [['enterprise', 0.2], ['midmarket', 0.4], ['smb', 0.4]],
-    campaigns: [{ name: (q) => `Email Nurturing ${q}`, budget: [20e6, 39e6] }],
+    campaigns: [{ name: (q) => `E-mel Pemupukan Lead ${q}`, budget: [6e3, 11e3] }],
   },
   content: {
-    cpl: 1.2e6,
+    cpl: 340,
     mqlRate: 0.32,
     seg: [['enterprise', 0.15], ['midmarket', 0.35], ['smb', 0.5]],
-    campaigns: [{ name: (q) => `SEO & Konten Pilar ${q}`, budget: [65e6, 117e6] }],
+    campaigns: [{ name: (q) => `SEO & Kandungan Teras ${q}`, budget: [19e3, 33e3] }],
   },
   referral: {
-    cpl: 1.8e6,
+    cpl: 510,
     mqlRate: 0.55,
     seg: [['enterprise', 0.25], ['midmarket', 0.4], ['smb', 0.35]],
-    campaigns: [{ name: (q) => `Program Referral Pelanggan ${q}`, budget: [32e6, 65e6] }],
+    campaigns: [{ name: (q) => `Program Rujukan Pelanggan ${q}`, budget: [9e3, 19e3] }],
   },
 };
+
+/** Company name without the legal suffix, e.g. "Seri Logistics Sdn Bhd" -> "Seri Logistics". */
+export function shortCompany(name: string): string {
+  return name.replace(/\s+(Sdn\.?\s*Bhd\.?|Berhad|Bhd\.?)$/i, '');
+}
 
 // ---------- Generator ----------
 
@@ -298,14 +313,14 @@ export function seed(db: Db, opts: SeedOptions): SeedSummary {
     for (let attempt = 0; attempt < 50; attempt++) {
       const a = rng.pick(NAME_A);
       const b = rng.pick(NAME_B[industry]);
-      let name = attempt < 25 ? `PT ${a} ${b}` : `PT ${a} ${rng.pick(NAME_A)} ${b}`;
-      if (enterprise && rng.chance(0.3)) name += ' Tbk';
+      let name = attempt < 25 ? `${a} ${b}` : `${a} ${rng.pick(NAME_A)} ${b}`;
+      name += enterprise && rng.chance(0.3) ? ' Berhad' : ' Sdn Bhd';
       if (!usedNames.has(name)) {
         usedNames.add(name);
         return name;
       }
     }
-    const fallback = `PT ${rng.pick(NAME_A)} ${rng.pick(NAME_B[industry])} ${usedNames.size}`;
+    const fallback = `${rng.pick(NAME_A)} ${rng.pick(NAME_B[industry])} ${usedNames.size} Sdn Bhd`;
     usedNames.add(fallback);
     return fallback;
   };
@@ -358,7 +373,7 @@ export function seed(db: Db, opts: SeedOptions): SeedSummary {
           start = D.addMonths(q.start, 1);
           end = D.addDays(start, 27);
         }
-        const budget = roundTo(rng.float(...tpl.budget) * growth(start, 0.1), 1e6);
+        const budget = roundTo(rng.float(...tpl.budget) * growth(start, 0.1), 500);
         let status: Campaign['status'];
         let spend: number;
         if (end < today) {
@@ -379,7 +394,7 @@ export function seed(db: Db, opts: SeedOptions): SeedSummary {
           start_date: start,
           end_date: end,
           budget,
-          spend: roundTo(spend, 100_000),
+          spend: roundTo(spend, 10),
           status,
         });
       }
@@ -409,7 +424,7 @@ export function seed(db: Db, opts: SeedOptions): SeedSummary {
       growth(o.created, 0.1) *
       PRODUCT_FACTOR[product] *
       (expansion ? rng.float(0.3, 0.6) : 1);
-    amount = roundTo(amount, 500_000);
+    amount = roundTo(amount, 100);
     const winP =
       p.win +
       (o.source === 'partner' ? 0.08 : o.source === 'marketing' ? 0.03 : 0) +
@@ -432,7 +447,7 @@ export function seed(db: Db, opts: SeedOptions): SeedSummary {
 
     const deal: Deal = {
       id: deals.length + 1,
-      name: `${o.account.name.replace(/^PT /, '').replace(/ Tbk$/, '')} – ${PRODUCT_DEAL_NAME[product]}${expansion ? ' (Ekspansi)' : ''}`,
+      name: `${shortCompany(o.account.name)} – ${PRODUCT_DEAL_NAME[product]}${expansion ? ' (Pengembangan)' : ''}`,
       account_id: o.account.id,
       owner_id: o.ownerId,
       stage: 'prospecting',
@@ -484,8 +499,7 @@ export function seed(db: Db, opts: SeedOptions): SeedSummary {
       const owner = sdrs[sdrTurn++ % sdrs.length];
       const existing = rng.chance(0.15) ? pickAccount(segment) : undefined;
       const industry = existing?.industry ?? rng.weighted(INDUSTRY_W);
-      const first = rng.pick(FIRST_NAMES);
-      const last = rng.pick(LAST_NAMES);
+      const person = personName(rng);
 
       let mql: string | null = null;
       let sql: string | null = null;
@@ -522,7 +536,7 @@ export function seed(db: Db, opts: SeedOptions): SeedSummary {
 
       const lead: Lead = {
         id: leads.length + 1,
-        name: `${first} ${last}`,
+        name: person.name,
         email: '',
         title: rng.pick(TITLES[segment]),
         company: existing?.name ?? '',
@@ -564,8 +578,8 @@ export function seed(db: Db, opts: SeedOptions): SeedSummary {
       } else if (!lead.company) {
         lead.company = companyName(industry, segment === 'enterprise');
       }
-      const slug = lead.company.replace(/^PT /, '').replace(/ Tbk$/, '').toLowerCase().replace(/[^a-z]+/g, '');
-      lead.email = `${first}.${last}@${slug}.example`.toLowerCase();
+      const slug = shortCompany(lead.company).toLowerCase().replace(/[^a-z]+/g, '');
+      lead.email = `${person.emailLocal}@${slug}.example`;
       leads.push(lead);
     }
   }
@@ -683,7 +697,7 @@ export function seed(db: Db, opts: SeedOptions): SeedSummary {
       for (const m of quotaMonths) {
         const ramp = 0.9 + 0.2 * ((Number(m.slice(5, 7)) - 1) / 11);
         const amount = perRep.get(m.slice(0, 4))! * ramp * rng.float(0.95, 1.05);
-        quotas.push({ rep_id: ae.id, month: m, amount: roundTo(amount, 10e6) });
+        quotas.push({ rep_id: ae.id, month: m, amount: roundTo(amount, 1_000) });
       }
     }
   }

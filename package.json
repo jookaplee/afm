@@ -2,7 +2,7 @@
   "name": "afm-sales-marketing-dashboard",
   "version": "1.0.0",
   "private": true,
-  "description": "Sistem dasbor Sales & Marketing B2B: pipeline, forecast, performa tim, kampanye, lead, dan akun.",
+  "description": "Sistem papan pemuka Jualan & Pemasaran B2B: pipeline, ramalan, prestasi pasukan, kempen, lead dan akaun.",
   "type": "module",
   "engines": {
     "node": ">=22.18"

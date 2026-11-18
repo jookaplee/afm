@@ -4,6 +4,7 @@ import type { Db } from './db.ts';
 import { tx } from './db.ts';
 import { HttpError, intParam, oneOf, str, validateBody, type Query, type Schema } from './http.ts';
 import { DEAL_ROW_SQL } from './analytics.ts';
+import { shortCompany } from './seed.ts';
 import {
   ABM_TIERS,
   CAMPAIGN_STATUSES,
@@ -316,7 +317,7 @@ export function convertLead(db: Db, id: number, body: unknown, today: string): {
       });
     }
     const dealId = insert(db, 'deals', {
-      name: (data.deal_name as string | null) || `${lead.company.replace(/^PT /, '')} – Peluang baru`,
+      name: (data.deal_name as string | null) || `${shortCompany(lead.company)} – Peluang baharu`,
       account_id: accountId,
       owner_id: data.owner_id,
       stage: 'qualification',

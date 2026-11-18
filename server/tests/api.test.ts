@@ -102,7 +102,7 @@ describe('analytics', () => {
   });
 
   it('hides targets when a region filter is active', async () => {
-    const { body } = await get<OverviewResponse>('/analytics/overview?region=sumatra');
+    const { body } = await get<OverviewResponse>('/analytics/overview?region=sabah');
     assert.equal(body.targetAvailable, false);
     assert.equal(body.kpis.target, null);
   });
@@ -121,11 +121,11 @@ describe('deals CRUD', () => {
     assert.equal(bad.body.details.fields.account_id, 'required');
 
     const created = await call<DealRow>('POST', '/deals', {
-      name: 'Uji – Platform',
+      name: 'Ujian – Platform',
       account_id: 1,
       owner_id: 1,
       stage: 'prospecting',
-      amount: 250_000_000,
+      amount: 85_000,
       product: 'platform',
       type: 'new_business',
       source: 'sales',
@@ -146,7 +146,7 @@ describe('deals CRUD', () => {
     const reopened = await call<DealRow>('PATCH', `/deals/${id}`, { stage: 'proposal' });
     assert.equal(reopened.body.closed_at, null);
 
-    const list = await get<Paged<DealRow>>(`/deals?search=${encodeURIComponent('Uji – Platform')}`);
+    const list = await get<Paged<DealRow>>(`/deals?search=${encodeURIComponent('Ujian – Platform')}`);
     assert.equal(list.body.total, 1);
 
     assert.equal((await call('DELETE', `/deals/${id}`)).status, 204);
@@ -157,11 +157,11 @@ describe('deals CRUD', () => {
 describe('leads lifecycle', () => {
   it('qualifies and converts a lead into an account + deal', async () => {
     const lead = await call<LeadRow>('POST', '/leads', {
-      name: 'Budi Uji',
-      company: 'PT Uji Coba Sejahtera',
+      name: 'Aminah Ujian',
+      company: 'Ujian Jaya Sdn Bhd',
       industry: 'logistics',
       segment: 'midmarket',
-      region: 'java',
+      region: 'southern',
       channel: 'linkedin',
     });
     assert.equal(lead.status, 201);
@@ -172,7 +172,7 @@ describe('leads lifecycle', () => {
 
     const conv = await call<{ lead: LeadRow; deal: DealRow }>('POST', `/leads/${lead.body.id}/convert`, {
       owner_id: 4,
-      amount: 300_000_000,
+      amount: 120_000,
       product: 'analytics',
       expected_close: '2026-10-01',
     });
@@ -180,7 +180,7 @@ describe('leads lifecycle', () => {
     assert.equal(conv.body.lead.status, 'converted');
     assert.equal(conv.body.deal.source, 'marketing');
     assert.equal(conv.body.deal.channel, 'linkedin');
-    assert.equal(conv.body.deal.account_name, 'PT Uji Coba Sejahtera');
+    assert.equal(conv.body.deal.account_name, 'Ujian Jaya Sdn Bhd');
     assert.ok(conv.body.lead.sql_at);
 
     const again = await call('POST', `/leads/${lead.body.id}/convert`, { owner_id: 4, amount: 1, product: 'hr', expected_close: '2026-10-01' });
@@ -191,11 +191,11 @@ describe('leads lifecycle', () => {
 describe('campaigns & accounts', () => {
   it('rejects a campaign that ends before it starts', async () => {
     const res = await call<{ details: { fields: Record<string, string> } }>('POST', '/campaigns', {
-      name: 'Salah tanggal',
+      name: 'Tarikh salah',
       channel: 'email',
       start_date: '2026-07-01',
       end_date: '2026-06-01',
-      budget: 1_000_000,
+      budget: 5_000,
     });
     assert.equal(res.status, 400);
     assert.equal(res.body.details.fields.end_date, 'before_start');
@@ -203,11 +203,11 @@ describe('campaigns & accounts', () => {
 
   it('derives campaign status from dates', async () => {
     const res = await call<{ status: string }>('POST', '/campaigns', {
-      name: 'Webinar Juli',
+      name: 'Webinar Julai',
       channel: 'events',
       start_date: '2026-07-01',
       end_date: '2026-07-31',
-      budget: 50_000_000,
+      budget: 15_000,
     });
     assert.equal(res.status, 201);
     assert.equal(res.body.status, 'planned');
@@ -215,11 +215,11 @@ describe('campaigns & accounts', () => {
 
   it('accepts explicit nulls for optional fields, as the forms send them', async () => {
     const camp = await call<{ id: number; status: string; spend: number }>('POST', '/campaigns', {
-      name: 'Nurturing tanpa status',
+      name: 'Pemupukan tanpa status',
       channel: 'email',
       start_date: '2026-06-01',
       end_date: '2026-06-30',
-      budget: 10_000_000,
+      budget: 3_000,
       spend: null,
       status: null,
     });
@@ -230,10 +230,10 @@ describe('campaigns & accounts', () => {
     assert.equal(edited.body.status, 'completed');
 
     const acc = await call<{ id: number; tier: string; employees: number }>('POST', '/accounts', {
-      name: 'PT Null Aman',
+      name: 'Null Aman Sdn Bhd',
       industry: 'retail',
       segment: 'smb',
-      region: 'bali_nusra',
+      region: 'sarawak',
       employees: null,
       website: null,
       owner_id: null,
@@ -244,11 +244,11 @@ describe('campaigns & accounts', () => {
     assert.equal(acc.body.employees, 0);
 
     const lead = await call<LeadRow>('POST', '/leads', {
-      name: 'Sari Null',
-      company: 'PT Null Aman',
+      name: 'Siti Null',
+      company: 'Null Aman Sdn Bhd',
       industry: 'retail',
       segment: 'smb',
-      region: 'bali_nusra',
+      region: 'sarawak',
       channel: 'content',
       email: null,
       title: null,
@@ -261,12 +261,12 @@ describe('campaigns & accounts', () => {
     const conv = await call<{ deal: DealRow }>('POST', `/leads/${lead.body.id}/convert`, {
       deal_name: null,
       owner_id: 8,
-      amount: 40_000_000,
+      amount: 12_000,
       product: 'hr',
       expected_close: '2026-08-01',
     });
     assert.equal(conv.status, 201);
-    assert.match(conv.body.deal.name, /Null Aman/);
+    assert.equal(conv.body.deal.name, 'Null Aman – Peluang baharu');
   });
 
   it('refuses to delete an account that still has deals', async () => {

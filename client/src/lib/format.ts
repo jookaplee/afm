@@ -2,10 +2,11 @@ export type Format = ReturnType<typeof makeFormat>;
 
 const DASH = '—';
 
-export function makeFormat(lang: 'id' | 'en') {
-  const locale = lang === 'id' ? 'id-ID' : 'en-US';
+export function makeFormat(lang: 'ms' | 'en') {
+  const locale = lang === 'ms' ? 'ms-MY' : 'en-MY';
   const full = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 });
   const compact1 = new Intl.NumberFormat(locale, { notation: 'compact', maximumFractionDigits: 1 });
+  const compact2 = new Intl.NumberFormat(locale, { notation: 'compact', maximumFractionDigits: 2 });
   const pct1 = new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 1, minimumFractionDigits: 0 });
   const pct0 = new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 0 });
   const dec1 = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 });
@@ -18,15 +19,16 @@ export function makeFormat(lang: 'id' | 'en') {
 
   return {
     locale,
-    /** Full rupiah, e.g. "Rp 1.250.000.000". */
-    money: (v: number | null | undefined) => (ok(v) ? `Rp ${full.format(Math.round(v))}` : DASH),
-    /** Compact rupiah, e.g. "Rp 1,3 M" / "Rp 450 jt". */
+    /** Full ringgit, e.g. "RM1,250,000". */
+    money: (v: number | null | undefined) => (ok(v) ? `${v < 0 ? '−' : ''}RM${full.format(Math.abs(Math.round(v)))}` : DASH),
+    /** Compact ringgit, e.g. "RM1.3J" (juta) / "RM450K"; English: "RM1.3M". */
     moneyCompact: (v: number | null | undefined) => {
       if (!ok(v)) return DASH;
-      return `Rp ${Math.abs(v) < 1000 ? full.format(v) : compact1.format(v)}`;
+      const abs = Math.abs(v);
+      return `${v < 0 ? '−' : ''}RM${abs < 1000 ? full.format(abs) : compact1.format(abs)}`;
     },
-    /** Compact axis tick without currency, e.g. "1,2 M". */
-    axis: (v: number) => (Math.abs(v) < 10_000 ? full.format(v) : compact1.format(v)),
+    /** Compact axis tick without currency, e.g. "1.2J". */
+    axis: (v: number) => (Math.abs(v) < 10_000 ? full.format(v) : compact2.format(v)),
     num: (v: number | null | undefined) => (ok(v) ? full.format(v) : DASH),
     compact: (v: number | null | undefined) => (ok(v) ? (Math.abs(v) < 10_000 ? full.format(v) : compact1.format(v)) : DASH),
     pct: (v: number | null | undefined) => (ok(v) ? pct1.format(v) : DASH),

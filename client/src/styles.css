@@ -1363,3 +1363,6 @@ table.data .nowrap {
   font-size: 12px;
   color: var(--text-muted);
 }
+.deal-card .meta > span:last-child {
+  white-space: nowrap;
+}

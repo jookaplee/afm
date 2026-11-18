@@ -88,7 +88,7 @@ export function App() {
 
   return (
     <div className={`shell ${navOpen ? 'nav-open' : ''}`}>
-      <aside className="sidebar" aria-label="Navigasi">
+      <aside className="sidebar" aria-label={t('nav.aria')}>
         <div className="brand">
           <svg className="brand-mark" viewBox="0 0 32 32" aria-hidden>
             <rect width="32" height="32" rx="8" fill="var(--accent)" />
@@ -120,9 +120,9 @@ export function App() {
               <ThemeIcon aria-hidden />
               {t(`theme.${mode}`)}
             </button>
-            <button className="btn sm" onClick={() => setLang(lang === 'id' ? 'en' : 'id')} title={t('lang.switch')} aria-label={t('lang.switch')}>
+            <button className="btn sm" onClick={() => setLang(lang === 'ms' ? 'en' : 'ms')} title={t('lang.switch')} aria-label={t('lang.switch')}>
               <Languages aria-hidden />
-              {lang === 'id' ? 'EN' : 'ID'}
+              {lang === 'ms' ? 'EN' : 'BM'}
             </button>
           </div>
           <button className="btn sm ghost" onClick={resetData}>
