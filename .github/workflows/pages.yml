@@ -1,0 +1,43 @@
+# Publishes the standalone dashboard to GitHub Pages after every push, so the
+# latest finished version is always at https://<owner>.github.io/<repo>/ and
+# opens directly in Safari (or any browser) without signing in.
+#
+# One-time setup: Settings -> Pages -> Build and deployment -> Source:
+# "Deploy from a branch", Branch: gh-pages, folder: / (root).
+name: Pages
+
+on:
+  push:
+    branches: [main, claude/sales-marketing-b2b-dashboard-mpqhgf]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build:standalone
+      - name: Push the site to the gh-pages branch
+        working-directory: dist-standalone/site
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git init -q -b gh-pages
+          git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "Publish ${GITHUB_SHA::7} from ${GITHUB_REF_NAME}"
+          git push -q -f "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" gh-pages
+          echo "Published: https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/" >> "$GITHUB_STEP_SUMMARY"

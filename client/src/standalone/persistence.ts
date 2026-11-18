@@ -31,6 +31,8 @@ export interface Meta {
 }
 
 export interface Store {
+  /** Where changes are kept: the artifact's shared database, or this browser only. */
+  kind: 'cloud' | 'device';
   /** false: this viewer may read but not save changes. */
   canWrite: boolean;
   readMeta(): Promise<Meta | null>;
@@ -135,6 +137,7 @@ export async function connectArtifactStore(): Promise<Store | null> {
   };
 
   return {
+    kind: 'cloud',
     canWrite,
     async readMeta() {
       const snap = await withTimeout(store.doc(META).get(), 10_000, 'read meta');
@@ -175,9 +178,76 @@ export async function connectArtifactStore(): Promise<Store | null> {
   };
 }
 
+// ---------- This browser's own storage (any other host, e.g. GitHub Pages) ----------
+
+interface KeyValueStorage {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+  removeItem(key: string): void;
+}
+
+const LS_META = 'joosons.meta';
+const LS_CHANGES = 'joosons.changes';
+
+/**
+ * Keeps the journal in this browser (localStorage), so changes survive reloads
+ * on this device. Returns null when storage is unavailable (private mode,
+ * blocked site data).
+ */
+export function browserStore(storage?: KeyValueStorage): Store | null {
+  let ls: KeyValueStorage;
+  try {
+    ls = storage ?? globalThis.localStorage;
+    if (!ls) return null;
+    const probe = 'joosons.probe';
+    ls.setItem(probe, '1');
+    ls.removeItem(probe);
+  } catch {
+    return null;
+  }
+  const readChanges = (): ChangeRecord[] => {
+    try {
+      const v = JSON.parse(ls.getItem(LS_CHANGES) ?? '[]');
+      return Array.isArray(v) ? v : [];
+    } catch {
+      return [];
+    }
+  };
+  return {
+    kind: 'device',
+    canWrite: true,
+    async readMeta() {
+      try {
+        const m = JSON.parse(ls.getItem(LS_META) ?? 'null');
+        return m && typeof m.epoch === 'string' && typeof m.anchor === 'string' ? m : null;
+      } catch {
+        return null;
+      }
+    },
+    async writeMeta(meta) {
+      ls.setItem(LS_META, JSON.stringify(meta));
+    },
+    async listChanges(epoch, afterTs = -1) {
+      return readChanges()
+        .filter((c) => c.epoch === epoch && c.ts > afterTs)
+        .sort((a, b) => a.ts - b.ts);
+    },
+    async appendChange(change) {
+      // Re-read first: another tab of this browser may have added changes.
+      const all = readChanges();
+      all.push(change);
+      ls.setItem(LS_CHANGES, JSON.stringify(all)); // throws when the quota is full
+    },
+    async pruneOtherEpochs(epoch) {
+      ls.setItem(LS_CHANGES, JSON.stringify(readChanges().filter((c) => c.epoch === epoch)));
+    },
+  };
+}
+
 /** An in-memory Store, used by tests to simulate reloads. */
 export function memoryStore(canWrite = true): Store & { changes: ChangeRecord[]; meta: Meta | null; failNextWrite: boolean } {
   const s = {
+    kind: 'cloud' as const,
     canWrite,
     changes: [] as ChangeRecord[],
     meta: null as Meta | null,

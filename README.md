@@ -80,8 +80,20 @@ dalam pangkalan data artifact. Semasa halaman dibuka, data demo dijana semula da
 yang sama lalu jurnal dimainkan semula, jadi rekod dan ID kekal sama selepas muat semula dan pada
 peranti lain. "Set semula data demo" memulakan set data baharu. Penonton yang hanya ada akses lihat
 boleh membaca data tetapi tidak boleh menyimpan perubahan. Di hos lain (tanpa `db`), perubahan
-kekal dalam memori sahaja; status penyimpanan dipaparkan di bahagian bawah bar sisi.
+disimpan dalam pelayar itu sendiri (localStorage) jika dibenarkan, atau dalam memori sahaja;
+status penyimpanan dipaparkan di bahagian bawah bar sisi.
 Butiran: `client/src/standalone/persistence.ts` dan `local-api.ts`.
+
+### Pautan Safari (GitHub Pages) — dikemas kini setiap kali siap
+
+Aliran kerja `.github/workflows/pages.yml` berjalan pada setiap push ke `main` dan ke branch kerja:
+ia menjalankan ujian, membina versi kendiri dan menerbitkannya ke branch `gh-pages`. Versi terkini
+sentiasa berada di **https://jookaplee.github.io/afm/** dan boleh dibuka terus dalam Safari (atau
+pelayar lain) tanpa log masuk. Di sana perubahan disimpan dalam pelayar itu sendiri (localStorage),
+jadi ia kekal selepas muat semula pada peranti yang sama.
+
+Tetapan sekali sahaja: **Settings → Pages → Build and deployment → Source: "Deploy from a branch"**,
+pilih branch `gh-pages` dan folder `/ (root)`.
 
 ### Sokongan pelayar
 

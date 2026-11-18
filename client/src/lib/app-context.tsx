@@ -4,7 +4,7 @@ import type { MetaResponse, Rep } from '../../../shared/types.ts';
 import { api } from './api.ts';
 import { load, save } from './storage.ts';
 import { useI18n } from './i18n.tsx';
-import { STANDALONE } from './env.ts';
+import { OWN_THEME } from './env.ts';
 import { Modal } from '../components/ui.tsx';
 
 // ---------- Meta (reps, campaigns, business date) ----------
@@ -112,7 +112,7 @@ export function useTheme() {
     return v === 'light' || v === 'dark' ? v : 'system';
   });
   useEffect(() => {
-    if (STANDALONE) return; // the hosting page sets the viewer's theme
+    if (!OWN_THEME) return; // the hosting page sets the viewer's theme
     const root = document.documentElement;
     if (mode === 'system') root.removeAttribute('data-theme');
     else root.setAttribute('data-theme', mode);

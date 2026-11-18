@@ -5,6 +5,7 @@ import {
   Cloud,
   CloudOff,
   Eye,
+  HardDrive,
   Columns3,
   Handshake,
   Languages,
@@ -22,7 +23,7 @@ import {
 import { useI18n } from './lib/i18n.tsx';
 import { errorMessage } from './lib/errors.ts';
 import { useConfirm, useMeta, useTheme, useToast } from './lib/app-context.tsx';
-import { STANDALONE } from './lib/env.ts';
+import { OWN_THEME, STANDALONE } from './lib/env.ts';
 import { api } from './lib/api.ts';
 import { Loading } from './components/ui.tsx';
 import { useApi } from './lib/useApi.ts';
@@ -92,9 +93,9 @@ export function App() {
   };
 
   const ThemeIcon = mode === 'dark' ? Moon : mode === 'light' ? Sun : Monitor;
-  const persistence = useApi<{ mode: 'cloud' | 'memory' | 'readonly' }>(STANDALONE ? '/_persistence' : null, { k: resetKey });
+  const persistence = useApi<{ mode: 'cloud' | 'device' | 'memory' | 'readonly' }>(STANDALONE ? '/_persistence' : null, { k: resetKey });
   const pmode = persistence.data?.mode;
-  const PersistIcon = pmode === 'cloud' ? Cloud : pmode === 'readonly' ? Eye : CloudOff;
+  const PersistIcon = pmode === 'cloud' ? Cloud : pmode === 'device' ? HardDrive : pmode === 'readonly' ? Eye : CloudOff;
 
   return (
     <div className={`shell ${navOpen ? 'nav-open' : ''}`}>
@@ -132,7 +133,7 @@ export function App() {
             </div>
           )}
           <div className="row">
-            {!STANDALONE && (
+            {OWN_THEME && (
               <button className="btn sm" style={{ flex: 1 }} onClick={cycle} title={t(`theme.${mode}`)}>
                 <ThemeIcon aria-hidden />
                 {t(`theme.${mode}`)}

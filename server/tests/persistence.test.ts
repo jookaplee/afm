@@ -107,3 +107,34 @@ describe('standalone persistence', () => {
     assert.equal(db.amount, 99_000);
   });
 });
+
+describe('browser storage (any host outside claude.ai)', () => {
+  it('keeps changes in this browser across reloads', async () => {
+    const { browserStore } = await import('../../client/src/standalone/persistence.ts');
+    const map = new Map<string, string>();
+    const storage = {
+      getItem: (k: string) => map.get(k) ?? null,
+      setItem: (k: string, v: string) => void map.set(k, v),
+      removeItem: (k: string) => void map.delete(k),
+    };
+    const store = browserStore(storage)!;
+    assert.equal(store.kind, 'device');
+    const a = await createLocalApi({ SQL, store, today: () => '2026-11-18' });
+    assert.equal(((await a.request('GET', '/_persistence')).body as { mode: string }).mode, 'device');
+    const id = ((await a.request('POST', '/deals', newDeal('Di pelayar ini'))).body as DealRow).id;
+    const b = await createLocalApi({ SQL, store: browserStore(storage), today: () => '2026-11-20' });
+    assert.equal(((await b.request('GET', `/deals/${id}`)).body as DealRow).name, 'Di pelayar ini');
+  });
+
+  it('is unavailable when storage throws (e.g. blocked site data)', async () => {
+    const { browserStore } = await import('../../client/src/standalone/persistence.ts');
+    const broken = {
+      getItem: () => null,
+      setItem: () => {
+        throw new Error('blocked');
+      },
+      removeItem: () => {},
+    };
+    assert.equal(browserStore(broken), null);
+  });
+});

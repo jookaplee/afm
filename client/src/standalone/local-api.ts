@@ -12,9 +12,9 @@ import { seed } from '../../../server/seed.ts';
 import { createRouter, type ApiResult } from '../../../server/routes.ts';
 import { todayLocal } from '../../../shared/dates.ts';
 import { wrapSqlJs } from './sqljs-db.ts';
-import { SEED_VERSION, connectArtifactStore, type ChangeRecord, type Store } from './persistence.ts';
+import { SEED_VERSION, browserStore, connectArtifactStore, type ChangeRecord, type Store } from './persistence.ts';
 
-export type PersistenceMode = 'cloud' | 'memory' | 'readonly';
+export type PersistenceMode = 'cloud' | 'device' | 'memory' | 'readonly';
 
 export interface PersistenceInfo {
   mode: PersistenceMode;
@@ -33,7 +33,8 @@ export async function createLocalApi(deps: { SQL: SqlJsStatic; store: Store | nu
   const { SQL, store } = deps;
   const origin = randomId();
 
-  let mode: PersistenceMode = store ? (store.canWrite ? 'cloud' : 'readonly') : 'memory';
+  let mode: PersistenceMode = store ? (store.canWrite ? store.kind : 'readonly') : 'memory';
+  const saving = () => mode === 'cloud' || mode === 'device';
   let db: Db;
   let handle: (m: string, p: string, q: Record<string, string>, b: unknown) => ApiResult;
   let anchor = today();
@@ -105,7 +106,7 @@ export async function createLocalApi(deps: { SQL: SqlJsStatic; store: Store | nu
 
   /** Saves one change; on failure rebuilds from the saved journal so memory matches storage. */
   const persist = async (method: string, pathAndQuery: string, body: unknown): Promise<ApiResult | null> => {
-    if (!store || mode !== 'cloud') return null;
+    if (!store || !saving()) return null;
     const change: ChangeRecord = {
       epoch,
       ts: Math.max(Date.now(), lastTs() + 1),
@@ -135,7 +136,7 @@ export async function createLocalApi(deps: { SQL: SqlJsStatic; store: Store | nu
 
   /** Applies changes other people saved since this page loaded, before writing on top of them. */
   const syncForeign = async () => {
-    if (!store || mode !== 'cloud') return;
+    if (!store || !saving()) return;
     try {
       const newer = await store.listChanges(epoch, lastTs());
       for (const c of newer) {
@@ -150,7 +151,7 @@ export async function createLocalApi(deps: { SQL: SqlJsStatic; store: Store | nu
   const reset = async (): Promise<ApiResult> => {
     if (mode === 'readonly') return err(403, 'read_only', 'You can view this page but not save changes.');
     const date = today();
-    if (store && mode === 'cloud') {
+    if (store && saving()) {
       const next = randomId();
       try {
         await store.writeMeta({ epoch: next, anchor: date, seedVersion: SEED_VERSION });
@@ -209,7 +210,9 @@ let instance: ReturnType<typeof createLocalApi> | null = null;
 
 function api() {
   instance ??= (async () => {
-    const [{ default: initSqlJs }, store] = await Promise.all([import('sql.js/dist/sql-asm-memory-growth.js'), connectArtifactStore()]);
+    const [{ default: initSqlJs }, cloud] = await Promise.all([import('sql.js/dist/sql-asm-memory-growth.js'), connectArtifactStore()]);
+    // Outside a claude.ai viewer (or when its database is unavailable) keep changes in this browser.
+    const store = cloud ?? browserStore();
     const SQL = await initSqlJs();
     return createLocalApi({ SQL, store });
   })();
