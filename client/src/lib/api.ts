@@ -21,6 +21,14 @@ export function withParams(path: string, params?: Params): string {
 }
 
 async function request<T>(method: string, path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
+  if (import.meta.env.VITE_STANDALONE === 'true') {
+    const { localRequest } = await import('../standalone/local-api.ts');
+    const res = await localRequest(method, path, body);
+    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+    const data = (res.body ?? {}) as { error?: string; details?: { fields?: Record<string, string> } };
+    if (res.status >= 400) throw new ApiError(res.status, data.error ?? 'Error', data.details?.fields ?? {});
+    return res.body as T;
+  }
   const res = await fetch(`/api${path}`, {
     method,
     signal,

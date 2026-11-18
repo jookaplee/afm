@@ -1,7 +1,6 @@
 // Data-management endpoints: deals, leads, campaigns, accounts.
 
-import type { Db } from './db.ts';
-import { tx } from './db.ts';
+import { tx, type Db } from './schema.ts';
 import { HttpError, intParam, oneOf, str, validateBody, type Query, type Schema } from './http.ts';
 import { DEAL_ROW_SQL } from './analytics.ts';
 import { shortCompany } from './seed.ts';

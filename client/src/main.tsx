@@ -1,21 +1,27 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, MemoryRouter } from 'react-router-dom';
 import { App } from './App.tsx';
 import { I18nProvider } from './lib/i18n.tsx';
-import { MetaProvider, ToastProvider } from './lib/app-context.tsx';
+import { ConfirmProvider, MetaProvider, ToastProvider } from './lib/app-context.tsx';
+import { STANDALONE } from './lib/env.ts';
 import './styles.css';
+
+// Hosted standalone pages can't rely on the URL path, so routing stays in memory there.
+const Router = STANDALONE ? MemoryRouter : BrowserRouter;
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BrowserRouter>
+    <Router>
       <I18nProvider>
         <ToastProvider>
-          <MetaProvider>
-            <App />
-          </MetaProvider>
+          <ConfirmProvider>
+            <MetaProvider>
+              <App />
+            </MetaProvider>
+          </ConfirmProvider>
         </ToastProvider>
       </I18nProvider>
-    </BrowserRouter>
+    </Router>
   </StrictMode>,
 );

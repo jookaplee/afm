@@ -8,6 +8,7 @@ import { useApi } from '../lib/useApi.ts';
 import { useI18n } from '../lib/i18n.tsx';
 import { useDashboardFilters } from '../lib/filters.ts';
 import { downloadCsv } from '../lib/csv.ts';
+import { CAN_DOWNLOAD } from '../lib/env.ts';
 import { FilterBar } from '../components/FilterBar.tsx';
 import { CampaignStatusBadge, Card, ErrorState, Loading, PageHeader } from '../components/ui.tsx';
 import { BarList, ChartCard, Funnel, KpiTile, SERIES, SegmentedBar, axisProps, gridProps, tooltipContent, xAxisProps } from '../components/charts.tsx';
@@ -244,10 +245,12 @@ export default function MarketingPage() {
           flush
           actions={
             <div className="page-actions">
-              <button className="btn sm" onClick={exportCampaigns}>
-                <Download aria-hidden />
-                {t('common.export')}
-              </button>
+              {CAN_DOWNLOAD && (
+                <button className="btn sm" onClick={exportCampaigns}>
+                  <Download aria-hidden />
+                  {t('common.export')}
+                </button>
+              )}
             </div>
           }
         >

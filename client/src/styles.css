@@ -151,6 +151,11 @@ body {
   margin: 0;
   padding: 0;
 }
+html {
+  /* Stop iOS Safari from inflating text in landscape. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
 body {
   background: var(--page);
   color: var(--text-primary);
@@ -211,11 +216,13 @@ h3 {
   display: grid;
   grid-template-columns: 236px minmax(0, 1fr);
   min-height: 100vh;
+  min-height: 100dvh;
 }
 .sidebar {
   position: sticky;
   top: 0;
   height: 100vh;
+  height: 100dvh; /* iOS Safari: excludes the collapsing toolbar */
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -439,6 +446,7 @@ h3 {
 }
 .select {
   padding-right: 28px;
+  -webkit-appearance: none;
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23898781' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
@@ -470,6 +478,11 @@ textarea.input {
 .search .input {
   padding-left: 32px;
   width: 240px;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.search .input::-webkit-search-decoration {
+  -webkit-appearance: none;
 }
 
 /* Filter row: one row, above everything it scopes */
@@ -908,6 +921,7 @@ table.data th {
 }
 table.data th.sortable {
   cursor: pointer;
+  -webkit-user-select: none;
   user-select: none;
 }
 table.data th.sortable:hover {
@@ -1029,6 +1043,7 @@ table.data .nowrap {
   flex-direction: column;
   min-height: 200px;
   max-height: calc(100vh - 260px);
+  max-height: calc(100dvh - 260px);
 }
 .kanban-col.drop {
   outline: 2px dashed var(--accent);
@@ -1062,6 +1077,8 @@ table.data .nowrap {
   border-radius: 8px;
   padding: 10px;
   cursor: grab;
+  -webkit-user-select: none;
+  user-select: none;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -1207,8 +1224,8 @@ table.data .nowrap {
 }
 .toasts {
   position: fixed;
-  right: 16px;
-  bottom: 16px;
+  right: calc(16px + env(safe-area-inset-right, 0px));
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1365,4 +1382,13 @@ table.data .nowrap {
 }
 .deal-card .meta > span:last-child {
   white-space: nowrap;
+}
+
+/* iOS Safari zooms the page when a focused field's text is under 16px. */
+@media (max-width: 760px) {
+  .input,
+  .select,
+  textarea.input {
+    font-size: 16px;
+  }
 }

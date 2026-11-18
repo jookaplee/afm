@@ -9,6 +9,7 @@ import { useDebounced } from '../lib/useDebounced.ts';
 import { useI18n } from '../lib/i18n.tsx';
 import { useMeta, useToast } from '../lib/app-context.tsx';
 import { downloadCsv } from '../lib/csv.ts';
+import { CAN_DOWNLOAD } from '../lib/env.ts';
 import { ErrorState, PageHeader, Pager, SearchInput, SelectFilter, StageBadge, Tabs } from '../components/ui.tsx';
 import { DataTable, type Column, type SortState } from '../components/DataTable.tsx';
 import { DealFormModal } from '../components/forms.tsx';
@@ -137,10 +138,12 @@ export default function DealsPage() {
         subtitle={t('deals.subtitle')}
         actions={
           <>
-            <button className="btn" onClick={exportCsv}>
-              <Download aria-hidden />
-              {t('common.export')}
-            </button>
+            {CAN_DOWNLOAD && (
+              <button className="btn" onClick={exportCsv}>
+                <Download aria-hidden />
+                {t('common.export')}
+              </button>
+            )}
             <button className="btn primary" onClick={() => setEditing('new')}>
               <Plus aria-hidden />
               {t('deals.new')}

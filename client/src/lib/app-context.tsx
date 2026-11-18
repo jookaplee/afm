@@ -1,9 +1,11 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
 import type { MetaResponse, Rep } from '../../../shared/types.ts';
 import { api } from './api.ts';
 import { load, save } from './storage.ts';
 import { useI18n } from './i18n.tsx';
+import { STANDALONE } from './env.ts';
+import { Modal } from '../components/ui.tsx';
 
 // ---------- Meta (reps, campaigns, business date) ----------
 
@@ -110,6 +112,7 @@ export function useTheme() {
     return v === 'light' || v === 'dark' ? v : 'system';
   });
   useEffect(() => {
+    if (STANDALONE) return; // the hosting page sets the viewer's theme
     const root = document.documentElement;
     if (mode === 'system') root.removeAttribute('data-theme');
     else root.setAttribute('data-theme', mode);
@@ -118,3 +121,61 @@ export function useTheme() {
   const cycle = useCallback(() => setMode((m) => (m === 'system' ? 'light' : m === 'light' ? 'dark' : 'system')), []);
   return { mode, cycle };
 }
+
+// ---------- Confirm dialog ----------
+// An in-page replacement for window.confirm(), which some hosts (and embedded
+// views) suppress.
+
+interface ConfirmRequest {
+  message: string;
+  confirmLabel?: string;
+  danger?: boolean;
+}
+type ConfirmFn = (req: ConfirmRequest) => Promise<boolean>;
+const ConfirmContext = createContext<ConfirmFn>(async () => false);
+
+export function ConfirmProvider({ children }: { children: ReactNode }) {
+  const { t } = useI18n();
+  const [req, setReq] = useState<ConfirmRequest | null>(null);
+  const resolver = useRef<((ok: boolean) => void) | null>(null);
+  const ask = useCallback<ConfirmFn>(
+    (r) =>
+      new Promise<boolean>((resolve) => {
+        resolver.current?.(false);
+        resolver.current = resolve;
+        setReq(r);
+      }),
+    [],
+  );
+  const done = (ok: boolean) => {
+    resolver.current?.(ok);
+    resolver.current = null;
+    setReq(null);
+  };
+  return (
+    <ConfirmContext.Provider value={ask}>
+      {children}
+      {req && (
+        <Modal
+          title={t('common.confirmTitle')}
+          onClose={() => done(false)}
+          width={440}
+          footer={
+            <div className="row">
+              <button type="button" className="btn" onClick={() => done(false)}>
+                {t('common.cancel')}
+              </button>
+              <button type="button" className={`btn ${req.danger ? 'danger' : 'primary'}`} onClick={() => done(true)}>
+                {req.confirmLabel ?? t('common.confirm')}
+              </button>
+            </div>
+          }
+        >
+          <p style={{ margin: 0 }}>{req.message}</p>
+        </Modal>
+      )}
+    </ConfirmContext.Provider>
+  );
+}
+
+export const useConfirm = () => useContext(ConfirmContext);

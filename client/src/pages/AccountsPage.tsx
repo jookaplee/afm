@@ -9,6 +9,7 @@ import { useDebounced } from '../lib/useDebounced.ts';
 import { useI18n } from '../lib/i18n.tsx';
 import { useToast } from '../lib/app-context.tsx';
 import { downloadCsv } from '../lib/csv.ts';
+import { CAN_DOWNLOAD } from '../lib/env.ts';
 import { ErrorState, PageHeader, Pager, SearchInput, SelectFilter } from '../components/ui.tsx';
 import { BarList, ChartCard, SERIES, SegmentedBar, StatTile } from '../components/charts.tsx';
 import { DataTable, type Column, type SortState } from '../components/DataTable.tsx';
@@ -112,10 +113,12 @@ export default function AccountsPage() {
         subtitle={t('accounts.subtitle')}
         actions={
           <>
-            <button className="btn" onClick={exportCsv}>
-              <Download aria-hidden />
-              {t('common.export')}
-            </button>
+            {CAN_DOWNLOAD && (
+              <button className="btn" onClick={exportCsv}>
+                <Download aria-hidden />
+                {t('common.export')}
+              </button>
+            )}
             <button className="btn primary" onClick={() => setCreating(true)}>
               <Plus aria-hidden />
               {t('accounts.new')}

@@ -142,11 +142,18 @@ export default function PipelinePage() {
                   {list.slice(0, MAX_CARDS).map((d) => {
                     const overdue = d.stage !== 'won' && d.stage !== 'lost' && d.expected_close < meta.today;
                     return (
-                      <button
-                        type="button"
+                      <div
+                        role="button"
+                        tabIndex={0}
                         key={d.id}
                         className={`deal-card ${dragId === d.id ? 'dragging' : ''}`}
                         draggable
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setEditing(d);
+                          }
+                        }}
                         onDragStart={(e) => {
                           e.dataTransfer.setData('text/plain', String(d.id));
                           e.dataTransfer.effectAllowed = 'move';
@@ -157,7 +164,6 @@ export default function PipelinePage() {
                           setOver(null);
                         }}
                         onClick={() => setEditing(d)}
-                        style={{ textAlign: 'left', font: 'inherit', color: 'inherit' }}
                       >
                         <span className="cell-main">{d.account_name}</span>
                         <span className="cell-sub">{d.name}</span>
@@ -174,7 +180,7 @@ export default function PipelinePage() {
                             {overdue && <span className="sr-only">{t('risk.overdue', { n: D.diffDays(d.expected_close, meta.today) })}</span>}
                           </span>
                         </span>
-                      </button>
+                      </div>
                     );
                   })}
                   {list.length > MAX_CARDS && <div className="kanban-more">{t('pipeline.moreCards', { n: fmt.num(list.length - MAX_CARDS) })}</div>}

@@ -17,7 +17,8 @@ import {
   UserPlus,
 } from 'lucide-react';
 import { useI18n } from './lib/i18n.tsx';
-import { useMeta, useTheme, useToast } from './lib/app-context.tsx';
+import { useConfirm, useMeta, useTheme, useToast } from './lib/app-context.tsx';
+import { STANDALONE } from './lib/env.ts';
 import { api } from './lib/api.ts';
 import { Loading } from './components/ui.tsx';
 
@@ -42,6 +43,7 @@ export function App() {
   const { meta, reload } = useMeta();
   const { mode, cycle } = useTheme();
   const toast = useToast();
+  const confirm = useConfirm();
   const location = useLocation();
   const [navOpen, setNavOpen] = useState(false);
   const [resetKey, setResetKey] = useState(0);
@@ -73,7 +75,7 @@ export function App() {
   ];
 
   const resetData = async () => {
-    if (!window.confirm(t('confirm.reset'))) return;
+    if (!(await confirm({ message: t('confirm.reset'), confirmLabel: t('action.resetData') }))) return;
     try {
       await api.post('/admin/reset', {});
       reload();
@@ -116,10 +118,12 @@ export function App() {
         </nav>
         <div className="sidebar-footer">
           <div className="row">
-            <button className="btn sm" style={{ flex: 1 }} onClick={cycle} title={t(`theme.${mode}`)}>
-              <ThemeIcon aria-hidden />
-              {t(`theme.${mode}`)}
-            </button>
+            {!STANDALONE && (
+              <button className="btn sm" style={{ flex: 1 }} onClick={cycle} title={t(`theme.${mode}`)}>
+                <ThemeIcon aria-hidden />
+                {t(`theme.${mode}`)}
+              </button>
+            )}
             <button className="btn sm" onClick={() => setLang(lang === 'ms' ? 'en' : 'ms')} title={t('lang.switch')} aria-label={t('lang.switch')}>
               <Languages aria-hidden />
               {lang === 'ms' ? 'EN' : 'BM'}

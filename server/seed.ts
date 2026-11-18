@@ -2,8 +2,7 @@
 // company, amounts in RM). Everything is anchored to `today`, so the dashboards always show a
 // live-looking picture: ~2 years of history, open pipeline, active campaigns.
 
-import type { Db } from './db.ts';
-import { clearAll, tx } from './db.ts';
+import { clearAll, tx, type Db } from './schema.ts';
 import * as D from '../shared/dates.ts';
 import {
   CHANNELS,

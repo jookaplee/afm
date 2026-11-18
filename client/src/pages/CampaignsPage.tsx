@@ -8,6 +8,7 @@ import { useDebounced } from '../lib/useDebounced.ts';
 import { useI18n } from '../lib/i18n.tsx';
 import { useToast } from '../lib/app-context.tsx';
 import { downloadCsv } from '../lib/csv.ts';
+import { CAN_DOWNLOAD } from '../lib/env.ts';
 import { CampaignStatusBadge, ErrorState, PageHeader, Pager, SearchInput, SelectFilter } from '../components/ui.tsx';
 import { SERIES } from '../components/charts.tsx';
 import { DataTable, type Column, type SortState } from '../components/DataTable.tsx';
@@ -132,10 +133,12 @@ export default function CampaignsPage() {
         subtitle={t('campaigns.subtitle')}
         actions={
           <>
-            <button className="btn" onClick={exportCsv}>
-              <Download aria-hidden />
-              {t('common.export')}
-            </button>
+            {CAN_DOWNLOAD && (
+              <button className="btn" onClick={exportCsv}>
+                <Download aria-hidden />
+                {t('common.export')}
+              </button>
+            )}
             <button className="btn primary" onClick={() => setEditing('new')}>
               <Plus aria-hidden />
               {t('campaigns.new')}

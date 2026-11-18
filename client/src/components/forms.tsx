@@ -18,7 +18,7 @@ import {
 import * as D from '../../../shared/dates.ts';
 import type { AccountRow, CampaignPerformance, DealRow, LeadRow, Paged } from '../../../shared/types.ts';
 import { api, ApiError } from '../lib/api.ts';
-import { useMeta, useToast } from '../lib/app-context.tsx';
+import { useConfirm, useMeta, useToast } from '../lib/app-context.tsx';
 import { useI18n } from '../lib/i18n.tsx';
 import { Field, Modal } from './ui.tsx';
 
@@ -283,6 +283,7 @@ export function DealFormModal({
   const { t } = useI18n();
   const { meta, aes } = useMeta();
   const toast = useToast();
+  const confirm = useConfirm();
   const editing = !!deal;
   const f = useForm({
     name: deal?.name ?? '',
@@ -326,8 +327,8 @@ export function DealFormModal({
       onSaved();
     });
 
-  const remove = () => {
-    if (!deal || !window.confirm(t('common.confirmDelete', { name: deal.name }))) return;
+  const remove = async () => {
+    if (!deal || !(await confirm({ message: t('common.confirmDelete', { name: deal.name }), confirmLabel: t('common.delete'), danger: true }))) return;
     f.submit(async () => {
       await api.del(`/deals/${deal.id}`);
       toast(t('common.deleted'));
@@ -457,6 +458,7 @@ export function LeadFormModal({ lead, onClose, onSaved }: { lead?: LeadRow | nul
   const { t } = useI18n();
   const { meta, sdrs } = useMeta();
   const toast = useToast();
+  const confirm = useConfirm();
   const editing = !!lead;
   const f = useForm({
     name: lead?.name ?? '',
@@ -495,8 +497,8 @@ export function LeadFormModal({ lead, onClose, onSaved }: { lead?: LeadRow | nul
       onSaved();
     });
 
-  const remove = () => {
-    if (!lead || !window.confirm(t('common.confirmDelete', { name: lead.name }))) return;
+  const remove = async () => {
+    if (!lead || !(await confirm({ message: t('common.confirmDelete', { name: lead.name }), confirmLabel: t('common.delete'), danger: true }))) return;
     f.submit(async () => {
       await api.del(`/leads/${lead.id}`);
       toast(t('common.deleted'));
@@ -644,6 +646,7 @@ export function CampaignFormModal({
   const { t } = useI18n();
   const { meta, reload } = useMeta();
   const toast = useToast();
+  const confirm = useConfirm();
   const editing = !!campaign;
   const q = D.quarterOf(meta.today);
   const f = useForm({
@@ -673,8 +676,8 @@ export function CampaignFormModal({
       reload();
       onSaved();
     });
-  const remove = () => {
-    if (!campaign || !window.confirm(t('common.confirmDelete', { name: campaign.name }))) return;
+  const remove = async () => {
+    if (!campaign || !(await confirm({ message: t('common.confirmDelete', { name: campaign.name }), confirmLabel: t('common.delete'), danger: true }))) return;
     f.submit(async () => {
       await api.del(`/campaigns/${campaign.id}`);
       toast(t('common.deleted'));
@@ -740,6 +743,7 @@ export function AccountFormModal({
   const { t } = useI18n();
   const { aes } = useMeta();
   const toast = useToast();
+  const confirm = useConfirm();
   const editing = !!account;
   const f = useForm({
     name: account?.name ?? '',
@@ -768,8 +772,8 @@ export function AccountFormModal({
       toast(editing ? t('common.saved') : t('common.created'));
       onSaved(saved);
     });
-  const remove = () => {
-    if (!account || !window.confirm(t('common.confirmDelete', { name: account.name }))) return;
+  const remove = async () => {
+    if (!account || !(await confirm({ message: t('common.confirmDelete', { name: account.name }), confirmLabel: t('common.delete'), danger: true }))) return;
     f.submit(async () => {
       await api.del(`/accounts/${account.id}`);
       toast(t('common.deleted'));

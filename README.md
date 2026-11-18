@@ -62,6 +62,27 @@ npm run seed       # atau butang "Set semula data demo" di bar sisi (bukan produ
 
 Arahan lain: `npm test` (ujian API), `npm run typecheck`.
 
+### Versi kendiri (tanpa pelayan) — untuk dibuka terus dalam pelayar
+
+```bash
+npm run build:standalone   # → dist-standalone/afm-dashboard.html (satu fail, ±2 MB)
+```
+
+Versi ini menjalankan pangkalan data SQLite **dalam pelayar** (sql.js, binaan asm.js tanpa
+WebAssembly) dan menggunakan logik API yang sama dengan pelayan. Fail HTML tunggal itu boleh
+dihoskan di mana-mana hos statik (cth. claude.ai Artifact, GitHub Pages, S3) dan dibuka dalam
+Safari, Chrome atau Firefox. Data demo dijana semasa halaman dibuka; perubahan disimpan dalam
+memori sahaja dan hilang apabila halaman dimuat semula. Butang eksport CSV disembunyikan dalam
+versi ini kerana hos statik biasanya menyekat muat turun.
+
+### Sokongan pelayar
+
+Safari / iOS 15+, Chrome / Edge 100+, Firefox 100+. Penyesuaian khusus Safari:
+sasaran build `safari15`/`ios15`, awalan `-webkit-` untuk `appearance` dan `user-select`,
+saiz fon 16px pada medan input di skrin kecil (elak zum automatik iOS), `100dvh` untuk
+bar alat iOS, kad kanban boleh diseret tanpa elemen `<button>`, dan dialog pengesahan dalam
+halaman (bukan `window.confirm`).
+
 ### Konfigurasi (pemboleh ubah persekitaran)
 
 | Pemboleh ubah | Lalai | Keterangan |
@@ -100,10 +121,13 @@ server/   Express 5 + node:sqlite
   seed.ts       penjana data demo deterministik (konteks Malaysia, RM)
   analytics.ts  enjin KPI (ringkasan, jualan, pemasaran)
   crud.ts       urus niaga, lead (+penukaran), kempen, akaun
-  app.ts        laluan REST + penyajian binaan produksi
+  schema.ts     skema + jenis Db mudah alih (node:sqlite / sql.js)
+  routes.ts     penghala API bebas pengangkutan (Express & pelayar)
+  app.ts        pembalut Express + penyajian binaan produksi
   tests/        ujian API (node:test)
 client/   React 19 + Vite + Recharts
   lib/          i18n (BM/EN), format Ringgit, penapis URL, klien API
+  standalone/   penyesuai sql.js + API dalam pelayar (versi kendiri)
   components/   carta, jadual, borang, baris penapis
   pages/        halaman papan pemuka & urus data
 ```

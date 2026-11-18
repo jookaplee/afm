@@ -242,6 +242,8 @@ export function Loading() {
   return <div className="loading-box">{t('common.loading')}</div>;
 }
 
+const MODAL_STACK: object[] = [];
+
 export function Modal({
   title,
   onClose,
@@ -262,7 +264,11 @@ export function Modal({
     const prev = document.activeElement as HTMLElement | null;
     const first = ref.current?.querySelector<HTMLElement>('input, select, textarea, button:not(.modal-x)');
     first?.focus();
+    const token = {};
+    MODAL_STACK.push(token);
     const onKey = (e: KeyboardEvent) => {
+      // Only the top-most dialog handles keys (a confirm can sit on top of a form).
+      if (MODAL_STACK[MODAL_STACK.length - 1] !== token) return;
       if (e.key === 'Escape') onClose();
       if (e.key === 'Tab' && ref.current) {
         const els = ref.current.querySelectorAll<HTMLElement>('input, select, textarea, button, a[href]');
@@ -281,6 +287,7 @@ export function Modal({
     document.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener('keydown', onKey);
+      MODAL_STACK.splice(MODAL_STACK.indexOf(token), 1);
       prev?.focus();
     };
   }, [onClose]);

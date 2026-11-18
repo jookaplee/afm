@@ -3,7 +3,7 @@
 // windows. That keeps the headline number, the previous-period comparison and
 // the per-bucket trend on exactly the same definition.
 
-import type { Db } from './db.ts';
+import type { Db } from './schema.ts';
 import * as D from '../shared/dates.ts';
 import { HttpError, dateParam, intParam, oneOf, type Query } from './http.ts';
 import {

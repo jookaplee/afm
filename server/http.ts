@@ -1,4 +1,4 @@
-import type { Db } from './db.ts';
+import type { Db } from './schema.ts';
 import { isValidDate } from '../shared/dates.ts';
 
 export class HttpError extends Error {
