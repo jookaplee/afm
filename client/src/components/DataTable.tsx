@@ -13,6 +13,8 @@ export interface Column<T> {
   align?: 'right';
   nowrap?: boolean;
   width?: number | string;
+  /** Secondary column: shown only on wide screens so the table fits without scrolling. */
+  wide?: boolean;
 }
 
 export interface SortState {
@@ -56,7 +58,7 @@ export function DataTable<T>({
               return (
                 <th
                   key={c.key}
-                  className={`${c.align ?? ''} ${sortable ? 'sortable' : ''}`}
+                  className={`${c.align ?? ''} ${sortable ? 'sortable' : ''} ${c.wide ? 'col-wide' : ''}`}
                   style={c.width ? { width: c.width } : undefined}
                   aria-sort={active ? (sort!.dir === 'asc' ? 'ascending' : 'descending') : undefined}
                   onClick={sortable ? () => toggle(c.sortKey ?? c.key) : undefined}
@@ -91,7 +93,7 @@ export function DataTable<T>({
                 tabIndex={onRowClick ? 0 : undefined}
               >
                 {columns.map((c) => (
-                  <td key={c.key} className={`${c.align === 'right' ? 'right num' : ''} ${c.nowrap ? 'nowrap' : ''}`}>
+                  <td key={c.key} className={`${c.align === 'right' ? 'right num' : ''} ${c.nowrap ? 'nowrap' : ''} ${c.wide ? 'col-wide' : ''}`}>
                     {c.render(r)}
                   </td>
                 ))}

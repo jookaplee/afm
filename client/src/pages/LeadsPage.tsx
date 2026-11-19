@@ -14,6 +14,7 @@ import { CAN_DOWNLOAD } from '../lib/env.ts';
 import { ErrorState, LeadStatusBadge, PageHeader, Pager, SearchInput, SelectFilter, Tabs } from '../components/ui.tsx';
 import { DataTable, type Column, type SortState } from '../components/DataTable.tsx';
 import { ConvertLeadModal, LeadFormModal } from '../components/forms.tsx';
+import { ContactLinks } from '../components/ContactLinks.tsx';
 
 type Tab = 'active' | LeadStatus | 'all';
 const TABS: Tab[] = ['active', 'new', 'mql', 'sql', 'converted', 'disqualified', 'all'];
@@ -28,7 +29,7 @@ export default function LeadsPage() {
   const [channel, setChannel] = useState<Channel | undefined>();
   const [segment, setSegment] = useState<Segment | undefined>();
   const [owner, setOwner] = useState('');
-  const [sort, setSort] = useState<SortState>({ key: 'created_at', dir: 'desc' });
+  const [sort, setSort] = useState<SortState>({ key: 'score', dir: 'desc' });
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<LeadRow | 'new' | null>(null);
   const [converting, setConverting] = useState<LeadRow | null>(null);
@@ -94,10 +95,13 @@ export default function LeadsPage() {
       sortKey: 'name',
       render: (l) => (
         <div>
-          <div className="cell-main">{l.name}</div>
-          <div className="cell-sub">{l.title}</div>
+          <div className="cell-main truncate" title={l.name}>
+            {l.name}
+          </div>
+          <div className="cell-sub">{l.phone ? <ContactLinks phone={l.phone} compact /> : l.title}</div>
         </div>
       ),
+      nowrap: true,
     },
     {
       key: 'company',
@@ -105,7 +109,7 @@ export default function LeadsPage() {
       sortKey: 'company',
       render: (l) => (
         <div>
-          <div>
+          <div className="truncate" title={l.company}>
             {l.account_id ? (
               <Link to={`/accounts/${l.account_id}`} onClick={(e) => e.stopPropagation()}>
                 {l.company}
@@ -115,10 +119,11 @@ export default function LeadsPage() {
             )}
           </div>
           <div className="cell-sub">
-            {t(`segment.${l.segment}`)} · {t(`region.${l.region}`)}
+            {t(`segmentShort.${l.segment}`)} · {t(`region.${l.region}`)}
           </div>
         </div>
       ),
+      nowrap: true,
     },
     {
       key: 'channel',
@@ -134,7 +139,7 @@ export default function LeadsPage() {
     { key: 'status', header: t('col.status'), sortKey: 'status', render: (l) => <LeadStatusBadge status={l.status} /> },
     { key: 'score', header: t('col.score'), sortKey: 'score', align: 'right', render: (l) => fmt.num(l.score) },
     { key: 'owner', header: t('field.sdr'), render: (l) => l.owner_name ?? '—', nowrap: true },
-    { key: 'created', header: t('col.created'), sortKey: 'created_at', align: 'right', render: (l) => fmt.date(l.created_at), nowrap: true },
+    { key: 'created', header: t('col.created'), sortKey: 'created_at', align: 'right', render: (l) => fmt.date(l.created_at), nowrap: true, wide: true },
     { key: 'actions', header: '', render: actions, nowrap: true },
   ];
 
@@ -143,12 +148,13 @@ export default function LeadsPage() {
       const all = await api.get<Paged<LeadRow>>('/leads', { ...filters, sort: sort.key, dir: sort.dir, pageSize: 5000 });
       downloadCsv(
         `leads_${tab}.csv`,
-        ['ID', t('col.name'), t('col.title'), 'Email', t('col.company'), t('col.industry'), t('col.segment'), t('col.region'), t('col.channel'), t('col.campaign'), t('col.status'), t('col.score'), t('field.sdr'), t('col.created')],
+        ['ID', t('col.name'), t('col.title'), 'Email', t('col.phone'), t('col.company'), t('col.industry'), t('col.segment'), t('col.region'), t('col.channel'), t('col.campaign'), t('col.status'), t('col.score'), t('field.sdr'), t('col.created')],
         all.rows.map((l) => [
           l.id,
           l.name,
           l.title,
           l.email,
+          l.phone,
           l.company,
           t(`industry.${l.industry}`),
           t(`segment.${l.segment}`),

@@ -14,6 +14,7 @@ import { ErrorState, PageHeader, Pager, SearchInput, SelectFilter, Switch } from
 import { BarList, ChartCard, SERIES, SegmentedBar, StatTile } from '../components/charts.tsx';
 import { DataTable, type Column, type SortState } from '../components/DataTable.tsx';
 import { AccountFormModal } from '../components/forms.tsx';
+import { ContactLinks } from '../components/ContactLinks.tsx';
 
 interface Summary {
   totals: { accounts: number; customers: number; revenue: number; pipeline: number };
@@ -58,10 +59,25 @@ export default function AccountsPage() {
       ),
     },
     { key: 'segment', header: t('col.segment'), sortKey: 'segment', render: (a) => t(`segment.${a.segment}`), nowrap: true },
-    { key: 'region', header: t('col.region'), render: (a) => t(`region.${a.region}`) },
+    { key: 'region', header: t('col.region'), render: (a) => t(`region.${a.region}`), nowrap: true },
+    {
+      key: 'contact',
+      header: t('col.contact'),
+      render: (a) => (
+        <div>
+          <div className="truncate" title={a.contact_name ?? undefined}>
+            {a.contact_name ?? '—'}
+          </div>
+          <div className="cell-sub">
+            <ContactLinks phone={a.phone} compact />
+          </div>
+        </div>
+      ),
+      nowrap: true,
+    },
+    { key: 'sales', header: t('col.salesEstimate'), sortKey: 'sales_estimate', align: 'right', render: (a) => fmt.moneyCompact(a.sales_estimate), nowrap: true },
+    { key: 'rating', header: t('col.rating'), sortKey: 'rating', align: 'right', render: (a) => (a.rating ? `★ ${fmt.dec(a.rating)}` : '—'), nowrap: true, wide: true },
     { key: 'tier', header: t('col.tier'), render: (a) => t(`tier.${a.tier}`), nowrap: true },
-    { key: 'owner', header: t('col.owner'), render: (a) => a.owner_name ?? '—', nowrap: true },
-    { key: 'won', header: t('col.revenue'), sortKey: 'won_revenue', align: 'right', render: (a) => fmt.moneyCompact(a.won_revenue), nowrap: true },
     {
       key: 'pipeline',
       header: t('col.openPipeline'),
@@ -75,8 +91,7 @@ export default function AccountsPage() {
       ),
       nowrap: true,
     },
-    { key: 'leads', header: t('col.leads'), align: 'right', render: (a) => fmt.num(a.leads) },
-    { key: 'last', header: t('col.lastActivity'), sortKey: 'last_activity', align: 'right', render: (a) => fmt.date(a.last_activity), nowrap: true },
+    { key: 'owner', header: t('col.owner'), render: (a) => a.owner_name ?? '—', nowrap: true },
   ];
 
   const exportCsv = async () => {
@@ -84,16 +99,41 @@ export default function AccountsPage() {
       const all = await api.get<Paged<AccountRow>>('/accounts', { ...filters, sort: sort.key, dir: sort.dir, pageSize: 5000 });
       downloadCsv(
         'accounts.csv',
-        ['ID', t('col.account'), t('col.industry'), t('col.segment'), t('col.region'), t('col.tier'), t('col.owner'), t('col.employees'), t('col.revenue'), t('col.openPipeline'), t('col.leads'), t('col.lastActivity')],
+        [
+          'ID',
+          t('col.account'),
+          t('account.legalName'),
+          t('col.industry'),
+          t('col.segment'),
+          t('col.region'),
+          t('account.area'),
+          t('account.contact'),
+          t('col.phone'),
+          t('col.salesEstimate'),
+          t('col.rating'),
+          t('field.website'),
+          t('col.tier'),
+          t('col.owner'),
+          t('col.revenue'),
+          t('col.openPipeline'),
+          t('col.leads'),
+          t('col.lastActivity'),
+        ],
         all.rows.map((a) => [
           a.id,
           a.name,
+          a.legal_name,
           t(`industry.${a.industry}`),
           t(`segment.${a.segment}`),
           t(`region.${a.region}`),
+          a.area,
+          a.contact_name,
+          a.phone,
+          a.sales_estimate,
+          a.rating,
+          a.website,
           t(`tier.${a.tier}`),
           a.owner_name,
-          a.employees,
           a.won_revenue,
           a.open_pipeline,
           a.leads,
@@ -106,6 +146,8 @@ export default function AccountsPage() {
   };
 
   const s = summary.data;
+  // A fresh prospect list has no won revenue yet: chart account counts instead.
+  const byCount = !!s && s.totals.revenue === 0;
   return (
     <div className="page">
       <PageHeader
@@ -146,8 +188,8 @@ export default function AccountsPage() {
           </div>
           <div className="grid cols-2">
             <ChartCard
-              title={t('chart.revenueByIndustry')}
-              sub={t('chart.revenueByIndustrySub')}
+              title={byCount ? t('chart.accountsByIndustry') : t('chart.revenueByIndustry')}
+              sub={byCount ? t('chart.accountsByIndustrySub') : t('chart.revenueByIndustrySub')}
               table={{
                 columns: [
                   { label: t('col.industry') },
@@ -159,11 +201,20 @@ export default function AccountsPage() {
                 rows: s.byIndustry.map((r) => [t(`industry.${r.key}`), fmt.num(r.accounts), fmt.num(r.customers), fmt.money(r.revenue), fmt.money(r.pipeline)]),
               }}
             >
-              <BarList rows={s.byIndustry.map((r) => ({ key: r.key, label: t(`industry.${r.key}`), value: r.revenue, display: fmt.moneyCompact(r.revenue) }))} />
+              <BarList
+                rows={[...s.byIndustry]
+                  .sort((a, b) => (byCount ? b.accounts - a.accounts : b.revenue - a.revenue))
+                  .map((r) => ({
+                    key: r.key,
+                    label: t(`industry.${r.key}`),
+                    value: byCount ? r.accounts : r.revenue,
+                    display: byCount ? fmt.num(r.accounts) : fmt.moneyCompact(r.revenue),
+                  }))}
+              />
             </ChartCard>
             <ChartCard
-              title={t('chart.segmentSplit')}
-              sub={t('chart.segmentSplitSub')}
+              title={byCount ? t('chart.accountsBySize') : t('chart.segmentSplit')}
+              sub={byCount ? t('chart.accountsBySizeSub') : t('chart.segmentSplitSub')}
               table={{
                 columns: [
                   { label: t('col.segment') },
@@ -175,8 +226,8 @@ export default function AccountsPage() {
               }}
             >
               <SegmentedBar
-                format={fmt.moneyCompact}
-                parts={s.bySegment.map((r, i) => ({ key: r.key, label: t(`segment.${r.key}`), value: r.revenue, color: SERIES[i] }))}
+                format={byCount ? fmt.num : fmt.moneyCompact}
+                parts={s.bySegment.map((r, i) => ({ key: r.key, label: t(`segment.${r.key}`), value: byCount ? r.accounts : r.revenue, color: SERIES[i] }))}
               />
             </ChartCard>
           </div>

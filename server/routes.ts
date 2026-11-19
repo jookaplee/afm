@@ -14,6 +14,8 @@ export interface RouterOptions {
   today: () => string;
   appName?: string;
   allowReset?: boolean;
+  /** Rebuilds the starting data for POST /admin/reset. Defaults to the demo data generator. */
+  resetBase?: () => unknown;
 }
 
 export interface ApiResult {
@@ -113,10 +115,15 @@ export function createRouter(opts: RouterOptions) {
     return noContent;
   });
 
+  // Sales team
+  on('GET', '/reps', () => crud.listReps(db, today()));
+  on('POST', '/reps', ({ body }) => created(crud.createRep(db, body, today())));
+  on('PATCH', '/reps/:id', ({ params, body }) => crud.updateRep(db, id(params), body, today()));
+
   // Admin
   on('POST', '/admin/reset', () => {
     if (!opts.allowReset) throw new HttpError(403, 'Reset is disabled on this server');
-    return seed(db, { today: today() });
+    return opts.resetBase ? opts.resetBase() : seed(db, { today: today() });
   });
 
   /** Dispatches one API call. `path` is relative to /api (e.g. "/deals/3"). Never throws. */

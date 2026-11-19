@@ -55,6 +55,7 @@ export default function SalesPage() {
         sortValue: (r) => r.avgCycle,
         render: (r) => (r.avgCycle === null ? '—' : t('common.days', { n: Math.round(r.avgCycle) })),
         nowrap: true,
+        wide: true,
       },
       { key: 'pipeline', header: t('col.openPipeline'), align: 'right', sortValue: (r) => r.openPipeline, render: (r) => fmt.moneyCompact(r.openPipeline), nowrap: true },
       { key: 'activities', header: t('col.activities'), align: 'right', sortValue: (r) => r.activities, render: (r) => fmt.num(r.activities) },
@@ -137,6 +138,7 @@ export default function SalesPage() {
           <ChartCard
             title={t('chart.pipelineByStage')}
             sub={t('chart.pipelineByStageSub')}
+            empty={data.pipelineByStage.every((s) => !s.count)}
             table={{
               columns: [
                 { label: t('col.stage') },
@@ -245,7 +247,8 @@ function ForecastCard({ f }: { f: ForecastInfo }) {
   ];
   const sumParts = parts.reduce((s, p) => s + p.value, 0);
   const scale = Math.max(sumParts, f.quota ?? 0, 1);
-  const remaining = f.quota !== null ? Math.max(0, f.quota - f.won) : null;
+  const hasQuota = !!f.quota;
+  const remaining = hasQuota ? Math.max(0, f.quota! - f.won) : null;
   const coverage = remaining ? (f.commit + f.bestCase + f.pipeline) / remaining : null;
 
   return (
@@ -264,10 +267,10 @@ function ForecastCard({ f }: { f: ForecastInfo }) {
                 <div key={p.key} style={{ width: `calc(${(p.value / scale) * 100}% - 2px)`, background: p.color, flex: 'none' }} title={`${p.label}: ${fmt.moneyCompact(p.value)}`} />
               ))}
           </div>
-          {f.quota !== null && (
+          {hasQuota && (
             <div
               className="meter-marker"
-              style={{ left: `calc(${(f.quota / scale) * 100}% - 1px)`, top: 0, bottom: -4, height: 36 }}
+              style={{ left: `calc(${((f.quota ?? 0) / scale) * 100}% - 1px)`, top: 0, bottom: -4, height: 36 }}
               title={`${t('forecast.quota')}: ${fmt.moneyCompact(f.quota)}`}
               aria-hidden
             />
@@ -297,7 +300,7 @@ function ForecastCard({ f }: { f: ForecastInfo }) {
               {f.quota ? <span className="muted"> · {fmt.pct0(f.projected / f.quota)}</span> : null}
             </strong>
           </div>
-          {f.quota !== null ? (
+          {hasQuota ? (
             <>
               <div className="hero-row">
                 <span>{t('forecast.gap')}</span>
@@ -313,7 +316,7 @@ function ForecastCard({ f }: { f: ForecastInfo }) {
             </>
           ) : (
             <p className="muted" style={{ margin: 0 }}>
-              {t('forecast.noQuota')}
+              {f.quota === null ? t('forecast.noQuota') : t('forecast.noQuotaSet')}
             </p>
           )}
         </div>

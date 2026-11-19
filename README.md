@@ -29,9 +29,10 @@ warna yang telah disahkan selamat untuk buta warna (mod cerah & gelap).
 |---|---|
 | **Pipeline** | Papan kanban — seret kad untuk memindahkan peringkat (urus niaga kalah memerlukan sebab) |
 | **Urus niaga** | Jadual dengan tab terbuka/menang/kalah, carian, penapis, isihan, penomboran halaman, tambah/sunting/padam, eksport CSV |
-| **Lead** | Kelayakan (Baharu → MQL → SQL), **tukar kepada urus niaga** (akaun dicipta secara automatik), tandakan tidak layak, eksport CSV |
+| **Lead** | Kelayakan (Lead baharu → Dihubungi → Berkelayakan), **tambah ke pipeline** (akaun dicipta secara automatik), tandakan tidak layak, telefon & pautan WhatsApp, eksport CSV |
 | **Kempen** | Bajet, perbelanjaan sebenar, lead, MQL/SQL, pipeline, hasil dan ROI setiap kempen |
-| **Akaun** | Pangkalan akaun ABM (tier 1/2/3), hasil mengikut industri & segmen, butiran akaun dengan urus niaga, lead dan sejarah aktiviti |
+| **Akaun** | Pangkalan akaun (saiz Tier A/B/C, kategori, kawasan, PIC, telefon/WhatsApp, anggaran jualan, penilaian, keutamaan), butiran akaun dengan profil, laman web & media sosial, urus niaga, lead dan sejarah aktiviti |
+| **Pasukan** | Jurujual, peranan, fokus saiz akaun dan **kuota bulanan** (menjadi sasaran papan pemuka); tambah/nyahaktif ahli |
 
 ## Cara menjalankan
 
@@ -50,7 +51,34 @@ npm run build
 npm start          # pelayan + aplikasi di http://localhost:3001
 ```
 
-Pada kali pertama dijalankan, pangkalan data kosong akan diisi secara automatik dengan **data demo
+### Import senarai prospek (data sebenar)
+
+```bash
+npm run import -- /laluan/ke/CRM_B2B.html   # atau fail .json
+```
+
+Arahan ini **mengosongkan pangkalan data** dan memulakannya semula dengan senarai prospek daripada
+fail eksport CRM (HTML satu fail dengan `<script id="lead-data">`, atau JSON `[...]` /
+`{ leads, categories }`). Setiap perniagaan menjadi satu **akaun** dan pemilik/PIC menjadi satu
+**lead** berstatus *Lead baharu* (saluran "Senarai prospek"); rekod pendua (nama + telefon sama)
+digabungkan. Pemetaan:
+
+| Sumber | Dalam papan pemuka |
+|---|---|
+| Anggaran jualan ≥ RM1J / ≥ RM300K / lain-lain | Saiz akaun **Tier A / Tier B / Tier C** |
+| Negeri / kawasan | Lembah Klang, Zon Utara, Zon Selatan, Pantai Timur, Sabah, Sarawak |
+| Kategori | Restoran Halal Western, Kafe Premium (Steak & BBQ), Penjual Perap Online Western, F&B lain |
+| Tier A / B / C | Keutamaan akaun Panas / Suam / Sejuk (boleh diubah) |
+| Tier + penilaian Google + kategori | Skor lead (0–100), digunakan untuk menyusun senarai lead |
+
+Pasukan lalai ialah *Pengurus Jualan*, *Sales 1* dan *Sales 2*; urus niaga, hasil dan kempen bermula
+kosong. Tetapkan kuota bulanan di halaman **Pasukan** supaya sasaran dipaparkan. Salinan set data
+disimpan di `data/import/crm-dataset.json` (tidak dikomit ke git kerana mengandungi nama dan nombor
+telefon), dan "Set semula data" akan kembali kepada set data ini, bukan data demo.
+
+### Data demo
+
+Tanpa set data import, pangkalan data kosong akan diisi secara automatik dengan **data demo
 yang realistik** untuk syarikat perisian B2B di Malaysia (±2.5 tahun sejarah: 14 jurujual/SDR,
 ±600 akaun "Sdn Bhd/Berhad", ±80 kempen, ±4,600 lead, ±950 urus niaga, aktiviti), di seluruh
 Lembah Klang, Zon Utara, Zon Selatan, Pantai Timur, Sabah dan Sarawak. Data sentiasa diselaraskan
@@ -66,6 +94,8 @@ Arahan lain: `npm test` (ujian API), `npm run typecheck`.
 
 ```bash
 npm run build:standalone   # → dist-standalone/afm-dashboard.html (satu fail, ±2 MB)
+# dengan senarai prospek dibenamkan (bukan data demo):
+DATASET=data/import/crm-dataset.json npm run build:standalone
 ```
 
 Versi ini menjalankan pangkalan data SQLite **dalam pelayar** (sql.js, binaan asm.js tanpa
@@ -76,9 +106,10 @@ biasanya menyekat muat turun.
 
 **Penyimpanan perubahan.** Apabila dibuka sebagai claude.ai Artifact yang diberi kemampuan `db`,
 setiap perubahan (tambah, sunting, padam, pindah peringkat, tukar lead) disimpan sebagai jurnal
-dalam pangkalan data artifact. Semasa halaman dibuka, data demo dijana semula daripada tarikh asas
-yang sama lalu jurnal dimainkan semula, jadi rekod dan ID kekal sama selepas muat semula dan pada
-peranti lain. "Set semula data demo" memulakan set data baharu. Penonton yang hanya ada akses lihat
+dalam pangkalan data artifact. Semasa halaman dibuka, data asas (senarai prospek yang dibenamkan,
+atau data demo) dibina semula lalu jurnal dimainkan semula, jadi rekod dan ID kekal sama selepas
+muat semula dan pada peranti lain. Jika data asas bertukar (cth. senarai prospek baharu), jurnal
+lama diabaikan dan dibersihkan secara automatik. "Set semula data" memulakan jurnal baharu. Penonton yang hanya ada akses lihat
 boleh membaca data tetapi tidak boleh menyimpan perubahan. Di hos lain (tanpa `db`), perubahan
 disimpan dalam pelayar itu sendiri (localStorage) jika dibenarkan, atau dalam memori sahaja;
 status penyimpanan dipaparkan di bahagian bawah bar sisi.
@@ -91,6 +122,9 @@ ia menjalankan ujian, membina versi kendiri dan menerbitkannya ke branch `gh-pag
 sentiasa berada di **https://jookaplee.github.io/afm/** dan boleh dibuka terus dalam Safari (atau
 pelayar lain) tanpa log masuk. Di sana perubahan disimpan dalam pelayar itu sendiri (localStorage),
 jadi ia kekal selepas muat semula pada peranti yang sama.
+
+> Pautan awam ini dibina **tanpa** senarai prospek (hanya data demo), kerana repositori dan
+> GitHub Pages boleh dibuka oleh sesiapa sahaja.
 
 Tetapan sekali sahaja: **Settings → Pages → Build and deployment → Source: "Deploy from a branch"**,
 pilih branch `gh-pages` dan folder `/ (root)`.
@@ -109,6 +143,7 @@ halaman (bukan `window.confirm`).
 |---|---|---|
 | `PORT` | `3001` | Port pelayan API |
 | `DB_PATH` | `data/afm.db` | Lokasi fail SQLite |
+| `DATASET_PATH` | `data/import/crm-dataset.json` | Set data prospek yang diimport (digunakan semasa mula & set semula) |
 | `APP_NAME` | `JOOSONS` | Nama yang dipaparkan di bar sisi |
 | `ALLOW_RESET` | `true` semasa pembangunan, `false` di produksi | Membenarkan `POST /api/admin/reset` |
 | `TODAY` | tarikh hari ini | Tetapkan "hari ini" (YYYY-MM-DD) untuk demo/ujian yang boleh diulang |
@@ -139,6 +174,8 @@ shared/   pemalar enum, jenis API, utiliti tarikh (digunakan pelayan & klien)
 server/   Express 5 + node:sqlite
   db.ts         skema
   seed.ts       penjana data demo deterministik (konteks Malaysia, RM)
+  import-crm.ts import senarai prospek CRM (HTML/JSON) → akaun + lead
+  import-cli.ts arahan `npm run import`
   analytics.ts  enjin KPI (ringkasan, jualan, pemasaran)
   crud.ts       urus niaga, lead (+penukaran), kempen, akaun
   schema.ts     skema + jenis Db mudah alih (node:sqlite / sql.js)
@@ -161,6 +198,7 @@ client/   React 19 + Vite + Recharts
 | `GET/POST /api/leads`, `PATCH/DELETE /api/leads/:id`, `POST /api/leads/:id/convert` | Penapis: `status` (`active`/status), `channel`, `segment`, `owner`, `campaign` |
 | `GET/POST /api/campaigns`, `PATCH/DELETE /api/campaigns/:id` | Termasuk agregat lead/MQL/SQL/pipeline/hasil |
 | `GET/POST /api/accounts`, `GET /api/accounts/summary`, `GET/PATCH/DELETE /api/accounts/:id` | Butiran akaun termasuk urus niaga, lead dan aktiviti |
+| `GET/POST /api/reps`, `PATCH /api/reps/:id` | Pasukan jualan & kuota bulanan (`monthly_quota`) |
 | `GET /api/meta` | Senarai jurujual, kempen dan tarikh rujukan |
 
 Nilai enum dalam API (cth. `klang_valley`, `negotiation`) kekal dalam bahasa Inggeris; label
@@ -169,6 +207,6 @@ dipaparkan dalam bahasa pengguna oleh antara muka.
 ## Nota & pembangunan seterusnya
 
 - Belum ada pengesahan/kebenaran pengguna — tambah sebelum digunakan di rangkaian awam.
-- Data demo boleh digantikan dengan data sebenar melalui API CRUD atau import terus ke jadual SQLite
-  (skema di `server/db.ts`). Integrasi CRM (cth. Salesforce/HubSpot) dan iklan (Google/LinkedIn Ads)
+- Data sebenar boleh dimasukkan melalui `npm run import`, API CRUD atau terus ke jadual SQLite
+  (skema di `server/schema.ts`). Integrasi CRM (cth. Salesforce/HubSpot) dan iklan (Google/LinkedIn Ads)
   boleh ditambah sebagai tugas penyegerakan yang menulis ke jadual yang sama.

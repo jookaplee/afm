@@ -15,6 +15,8 @@ interface MetaValue {
   repName: (id: number | null | undefined) => string;
   aes: Rep[];
   sdrs: Rep[];
+  /** Every active rep (lead owners can be any role). */
+  activeReps: Rep[];
 }
 
 const MetaContext = createContext<MetaValue | null>(null);
@@ -43,8 +45,9 @@ export function MetaProvider({ children }: { children: ReactNode }) {
       meta,
       reload,
       repName: (id) => (id ? (byId.get(id) ?? '—') : '—'),
-      aes: meta.reps.filter((r) => r.role === 'AE'),
-      sdrs: meta.reps.filter((r) => r.role === 'SDR'),
+      aes: meta.reps.filter((r) => r.role === 'AE' && r.active),
+      sdrs: meta.reps.filter((r) => r.role === 'SDR' && r.active),
+      activeReps: meta.reps.filter((r) => r.active),
     };
   }, [meta, reload]);
 

@@ -51,6 +51,7 @@
   --series-4: #34c759;
   --series-5: #af52de;
   --series-6: #ff2d55;
+  --series-7: #8e8e93;
   --series-muted: #c7c7cc;
 
   /* Ordinal ramp (one hue) for ordered stages */
@@ -133,6 +134,7 @@
     --series-4: #22a045;
     --series-5: #bf5af2;
     --series-6: #ff375f;
+    --series-7: #98989d;
     --series-muted: #48484a;
     --ord-1: #1458ad;
     --ord-2: #0a6fd6;
@@ -199,6 +201,7 @@
   --series-4: #22a045;
   --series-5: #bf5af2;
   --series-6: #ff375f;
+  --series-7: #98989d;
   --series-muted: #48484a;
   --ord-1: #1458ad;
   --ord-2: #0a6fd6;
@@ -903,6 +906,10 @@ textarea.input {
 .delta.flat {
   color: var(--text-muted);
   font-weight: 500;
+  white-space: normal;
+}
+.kpi-foot .delta {
+  min-width: 0;
 }
 .hint {
   display: inline-flex;
@@ -1217,6 +1224,19 @@ table.data td.num {
 }
 table.data .nowrap {
   white-space: nowrap;
+}
+table.data .truncate {
+  max-width: 14em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+table.data .contact-links {
+  flex-wrap: nowrap;
+}
+@media (max-width: 1599px) {
+  table.data .col-wide {
+    display: none;
+  }
 }
 .cell-main {
   font-weight: 500;
@@ -1718,6 +1738,7 @@ table.data .nowrap {
 .dl dd {
   margin: 0;
   text-align: right;
+  overflow-wrap: anywhere;
 }
 .dl dt:last-of-type,
 .dl dd:last-of-type {
@@ -1896,4 +1917,43 @@ table.data td:first-child {
 .sr-only {
   white-space: nowrap;
   clip-path: inset(50%);
+}
+
+/* Phone shortcuts */
+.contact-links {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--fill);
+  color: var(--accent-text);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.chip:hover {
+  background: var(--fill-strong);
+  text-decoration: none;
+}
+.chip svg {
+  width: 13px;
+  height: 13px;
+}
+.chip.wa {
+  color: var(--good-text);
+  background: var(--good-tint);
+}
+.link-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
 }

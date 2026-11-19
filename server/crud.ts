@@ -15,11 +15,12 @@ import {
   OPEN_STAGES,
   PRODUCTS,
   REGIONS,
+  REP_ROLES,
   SEGMENTS,
   SOURCES,
   STAGES,
 } from '../shared/constants.ts';
-import type { Account, AccountDetail, AccountRow, Campaign, Deal, DealRow, Lead, LeadRow, Paged } from '../shared/types.ts';
+import type { Account, AccountDetail, AccountRow, Campaign, Deal, DealRow, Lead, LeadRow, Paged, RepRow } from '../shared/types.ts';
 
 type Params = (string | number | null)[];
 
@@ -29,11 +30,12 @@ function paging(q: Query) {
   return { page, pageSize, offset: (page - 1) * pageSize };
 }
 
-function orderBy(q: Query, allowed: Record<string, string>, fallback: string): string {
+/** `then` breaks ties before the final id tie-break (e.g. many accounts with no revenue yet). */
+function orderBy(q: Query, allowed: Record<string, string>, fallback: string, then?: string): string {
   const sort = str(q, 'sort');
   const dir = str(q, 'dir') === 'asc' ? 'ASC' : 'DESC';
   const col = sort && allowed[sort] ? allowed[sort] : fallback;
-  return `ORDER BY ${col} ${dir}, id DESC`;
+  return `ORDER BY ${col} ${dir} NULLS LAST, ${then ? `${then}, ` : ''}id DESC`;
 }
 
 function paged<T>(db: Db, baseSql: string, params: Params, order: string, q: Query): Paged<T> {
@@ -199,6 +201,7 @@ const LEAD_ROW_SQL = `
 const leadSchema: Schema = {
   name: { type: 'string', required: true, maxLen: 120 },
   email: { type: 'string', nullable: true, maxLen: 200 },
+  phone: { type: 'string', nullable: true, maxLen: 40 },
   title: { type: 'string', nullable: true, maxLen: 120 },
   company: { type: 'string', required: true, maxLen: 200 },
   industry: { type: 'enum', values: INDUSTRIES, required: true },
@@ -219,8 +222,8 @@ export function listLeads(db: Db, q: Query): Paged<LeadRow> {
   const params: Params = [];
   const search = str(q, 'search');
   if (search) {
-    where.push(`(l.name LIKE ? ESCAPE '\\' OR l.company LIKE ? ESCAPE '\\' OR l.email LIKE ? ESCAPE '\\')`);
-    params.push(like(search), like(search), like(search));
+    where.push(`(l.name LIKE ? ESCAPE '\\' OR l.company LIKE ? ESCAPE '\\' OR l.email LIKE ? ESCAPE '\\' OR l.phone LIKE ? ESCAPE '\\')`);
+    params.push(like(search), like(search), like(search), like(search));
   }
   const status = str(q, 'status');
   if (status === 'active') where.push(`l.status IN ('new','mql','sql')`);
@@ -256,6 +259,7 @@ export function listLeads(db: Db, q: Query): Paged<LeadRow> {
     q,
     { name: 'name', company: 'company', score: 'score', status: 'status', created_at: 'created_at', channel: 'channel' },
     'created_at',
+    'score DESC',
   );
   return paged<LeadRow>(db, base, params, order, q);
 }
@@ -470,6 +474,10 @@ const accountSchema: Schema = {
   website: { type: 'string', nullable: true, maxLen: 200 },
   owner_id: { type: 'ref', table: 'reps', nullable: true },
   tier: { type: 'enum', values: ABM_TIERS, nullable: true },
+  legal_name: { type: 'string', nullable: true, maxLen: 200 },
+  contact_name: { type: 'string', nullable: true, maxLen: 120 },
+  phone: { type: 'string', nullable: true, maxLen: 40 },
+  sales_estimate: { type: 'int', nullable: true, min: 0, max: 1e15 },
 };
 
 function accountWhere(q: Query) {
@@ -477,8 +485,8 @@ function accountWhere(q: Query) {
   const params: Params = [];
   const search = str(q, 'search');
   if (search) {
-    where.push(`a.name LIKE ? ESCAPE '\\'`);
-    params.push(like(search));
+    where.push(`(a.name LIKE ? ESCAPE '\\' OR a.legal_name LIKE ? ESCAPE '\\' OR a.contact_name LIKE ? ESCAPE '\\' OR a.phone LIKE ? ESCAPE '\\')`);
+    params.push(like(search), like(search), like(search), like(search));
   }
   for (const [key, col, values] of [
     ['segment', 'a.segment', SEGMENTS],
@@ -511,11 +519,15 @@ export function listAccounts(db: Db, q: Query): Paged<AccountRow> {
       won_revenue: 'won_revenue',
       open_pipeline: 'open_pipeline',
       employees: 'employees',
+      sales_estimate: 'sales_estimate',
+      rating: 'rating',
       last_activity: 'last_activity',
       created_at: 'created_at',
       segment: 'segment',
     },
     'won_revenue',
+    // Customers first, then accounts in play, then the biggest prospects.
+    'won_revenue DESC, open_pipeline DESC, sales_estimate DESC NULLS LAST, rating DESC NULLS LAST',
   );
   return paged<AccountRow>(db, base, w.params, order, q);
 }
@@ -593,3 +605,75 @@ export function deleteAccount(db: Db, id: number): void {
   });
 }
 
+
+// ---------- Sales team (reps & monthly quotas) ----------
+
+const repSchema: Schema = {
+  name: { type: 'string', required: true, maxLen: 120 },
+  email: { type: 'string', nullable: true, maxLen: 200 },
+  role: { type: 'enum', values: REP_ROLES, required: true },
+  team: { type: 'enum', values: [...SEGMENTS, 'sdr'], required: true },
+  active: { type: 'int', min: 0, max: 1 },
+  monthly_quota: { type: 'int', nullable: true, min: 0, max: 1e15 },
+};
+
+const REP_ROW_SQL = (month: string) => `
+  SELECT r.*,
+    (SELECT amount FROM quotas q WHERE q.rep_id = r.id AND q.month = '${month}') AS monthly_quota,
+    (SELECT COUNT(*) FROM deals d WHERE d.owner_id = r.id AND d.stage NOT IN ('won','lost')) AS open_deals,
+    (SELECT COUNT(*) FROM accounts a WHERE a.owner_id = r.id) AS accounts
+  FROM reps r`;
+
+export function listReps(db: Db, today: string): RepRow[] {
+  return db.prepare(`${REP_ROW_SQL(today.slice(0, 7))} ORDER BY r.active DESC, r.role, r.name`).all() as unknown as RepRow[];
+}
+
+function getRep(db: Db, id: number, today: string): RepRow {
+  return mustGet<RepRow>(db, `${REP_ROW_SQL(today.slice(0, 7))} WHERE r.id = ?`, id, 'Rep');
+}
+
+/** Sets the same monthly quota from this month until the end of next year (earlier months keep theirs). */
+function setQuota(db: Db, repId: number, amount: number, today: string): void {
+  const del = db.prepare('DELETE FROM quotas WHERE rep_id = ? AND month = ?');
+  const ins = db.prepare('INSERT INTO quotas (rep_id, month, amount) VALUES (?, ?, ?)');
+  const year = Number(today.slice(0, 4));
+  for (let y = year, m = Number(today.slice(5, 7)); y <= year + 1; m++) {
+    if (m > 12) {
+      m = 1;
+      y++;
+      if (y > year + 1) break;
+    }
+    const month = `${y}-${String(m).padStart(2, '0')}`;
+    del.run(repId, month);
+    if (amount > 0) ins.run(repId, month, amount);
+  }
+}
+
+function checkRepTeam(role: unknown, team: unknown) {
+  if (role === 'SDR' && team !== 'sdr') throw new HttpError(400, 'Validation failed', { fields: { team: 'invalid' } });
+  if (role === 'AE' && team === 'sdr') throw new HttpError(400, 'Validation failed', { fields: { team: 'invalid' } });
+}
+
+export function createRep(db: Db, body: unknown, today: string): RepRow {
+  const data = validateBody(db, body, repSchema);
+  checkRepTeam(data.role, data.team);
+  return tx(db, () => {
+    const id = insert(db, 'reps', { name: data.name, email: data.email ?? '', role: data.role, team: data.team, active: data.active ?? 1 });
+    if (typeof data.monthly_quota === 'number') setQuota(db, id, data.monthly_quota, today);
+    return getRep(db, id, today);
+  });
+}
+
+export function updateRep(db: Db, id: number, body: unknown, today: string): RepRow {
+  const prev = mustGet<{ role: string; team: string }>(db, 'SELECT * FROM reps WHERE id = ?', id, 'Rep');
+  const data = validateBody(db, body, repSchema, true);
+  checkRepTeam(data.role ?? prev.role, data.team ?? prev.team);
+  return tx(db, () => {
+    const { monthly_quota, ...fields } = data;
+    if (fields.email === null) fields.email = '';
+    if (fields.active === null) delete fields.active;
+    update(db, 'reps', id, fields);
+    if (monthly_quota !== undefined) setQuota(db, id, Number(monthly_quota ?? 0), today);
+    return getRep(db, id, today);
+  });
+}

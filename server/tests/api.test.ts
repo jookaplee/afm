@@ -126,7 +126,7 @@ describe('deals CRUD', () => {
       owner_id: 1,
       stage: 'prospecting',
       amount: 85_000,
-      product: 'platform',
+      product: 'beef',
       type: 'new_business',
       source: 'sales',
       expected_close: '2026-09-30',
@@ -159,7 +159,7 @@ describe('leads lifecycle', () => {
     const lead = await call<LeadRow>('POST', '/leads', {
       name: 'Aminah Ujian',
       company: 'Ujian Jaya Sdn Bhd',
-      industry: 'logistics',
+      industry: 'penjual_perap_online',
       segment: 'midmarket',
       region: 'southern',
       channel: 'linkedin',
@@ -173,7 +173,7 @@ describe('leads lifecycle', () => {
     const conv = await call<{ lead: LeadRow; deal: DealRow }>('POST', `/leads/${lead.body.id}/convert`, {
       owner_id: 4,
       amount: 120_000,
-      product: 'analytics',
+      product: 'seafood',
       expected_close: '2026-10-01',
     });
     assert.equal(conv.status, 201);
@@ -183,7 +183,7 @@ describe('leads lifecycle', () => {
     assert.equal(conv.body.deal.account_name, 'Ujian Jaya Sdn Bhd');
     assert.ok(conv.body.lead.sql_at);
 
-    const again = await call('POST', `/leads/${lead.body.id}/convert`, { owner_id: 4, amount: 1, product: 'hr', expected_close: '2026-10-01' });
+    const again = await call('POST', `/leads/${lead.body.id}/convert`, { owner_id: 4, amount: 1, product: 'chicken', expected_close: '2026-10-01' });
     assert.equal(again.status, 409);
   });
 });
@@ -231,7 +231,7 @@ describe('campaigns & accounts', () => {
 
     const acc = await call<{ id: number; tier: string; employees: number }>('POST', '/accounts', {
       name: 'Null Aman Sdn Bhd',
-      industry: 'retail',
+      industry: 'kafe_premium_steak_bbq',
       segment: 'smb',
       region: 'sarawak',
       employees: null,
@@ -246,7 +246,7 @@ describe('campaigns & accounts', () => {
     const lead = await call<LeadRow>('POST', '/leads', {
       name: 'Siti Null',
       company: 'Null Aman Sdn Bhd',
-      industry: 'retail',
+      industry: 'kafe_premium_steak_bbq',
       segment: 'smb',
       region: 'sarawak',
       channel: 'content',
@@ -262,7 +262,7 @@ describe('campaigns & accounts', () => {
       deal_name: null,
       owner_id: 8,
       amount: 12_000,
-      product: 'hr',
+      product: 'chicken',
       expected_close: '2026-08-01',
     });
     assert.equal(conv.status, 201);

@@ -5,8 +5,9 @@
 import { clearAll, tx, type Db } from './schema.ts';
 import * as D from '../shared/dates.ts';
 import {
-  CHANNELS,
   INDUSTRIES,
+  MARKETING_CHANNELS,
+  type MarketingChannel,
   PRODUCTS,
   type ActivityType,
   type Channel,
@@ -111,25 +112,17 @@ const NAME_A = [
 ];
 
 const NAME_B: Record<Industry, string[]> = {
-  manufacturing: ['Industries', 'Manufacturing', 'Precision', 'Plastik', 'Packaging', 'Engineering'],
-  finance: ['Capital', 'Kewangan', 'Ventures', 'Credit', 'Insurans', 'Holdings'],
-  retail: ['Trading', 'Mart', 'Retail', 'Niaga', 'Distributors', 'Marketing'],
-  logistics: ['Logistics', 'Express', 'Freight', 'Shipping', 'Haulage', 'Warehousing'],
-  healthcare: ['Medical', 'Healthcare', 'Pharma', 'Klinik', 'Medik', 'Diagnostics'],
-  technology: ['Technology', 'Digital', 'Solutions', 'Systems', 'Data', 'Infotech'],
-  energy: ['Energy', 'Petroleum', 'Power', 'Resources', 'Oil & Gas', 'Utilities'],
-  property: ['Properties', 'Development', 'Construction', 'Realty', 'Builders', 'Land'],
+  restoran_halal_western: ['Steakhouse', 'Grill', 'Western Kitchen', 'Bistro', 'Diner', 'Charcoal House'],
+  kafe_premium_steak_bbq: ['Cafe', 'BBQ House', 'Smokehouse', 'Coffee & Grill', 'Roastery', 'Butcher Cafe'],
+  penjual_perap_online: ['Marinade', 'Frozen Mart', 'Perap Store', 'Meat Shop', 'Food Supply', 'Kitchen Co'],
+  other: ['Catering', 'Hotel', 'Food Services', 'Trading', 'Ventures', 'Holdings'],
 };
 
 const INDUSTRY_LABEL_MS: Record<Industry, string> = {
-  manufacturing: 'Pembuatan',
-  finance: 'Kewangan',
-  retail: 'Runcit & FMCG',
-  logistics: 'Logistik',
-  healthcare: 'Kesihatan',
-  technology: 'Teknologi',
-  energy: 'Tenaga',
-  property: 'Hartanah',
+  restoran_halal_western: 'Restoran Halal Western',
+  kafe_premium_steak_bbq: 'Kafe Steak & BBQ',
+  penjual_perap_online: 'Penjual Perap Online',
+  other: 'F&B Lain',
 };
 
 // Malaysian names: Malay, Chinese and Indian naming patterns.
@@ -172,28 +165,24 @@ const REGION_W: [Region, number][] = [
   ['sarawak', 0.09],
 ];
 const INDUSTRY_W: [Industry, number][] = [
-  ['manufacturing', 0.19],
-  ['finance', 0.14],
-  ['retail', 0.16],
-  ['logistics', 0.14],
-  ['healthcare', 0.1],
-  ['technology', 0.12],
-  ['energy', 0.07],
-  ['property', 0.08],
+  ['restoran_halal_western', 0.36],
+  ['kafe_premium_steak_bbq', 0.3],
+  ['penjual_perap_online', 0.24],
+  ['other', 0.1],
 ];
 const PRODUCT_W: [Product, number][] = [
-  ['platform', 0.45],
-  ['analytics', 0.2],
-  ['hr', 0.2],
-  ['services', 0.15],
+  ['beef', 0.4],
+  ['lamb', 0.2],
+  ['chicken', 0.25],
+  ['seafood', 0.15],
 ];
 const PRODUCT_DEAL_NAME: Record<Product, string> = {
-  platform: 'Pelaksanaan Platform',
-  analytics: 'Modul Analitik',
-  hr: 'Modul HR & Gaji',
-  services: 'Perkhidmatan Perundingan',
+  beef: 'Bekalan Daging Lembu',
+  lamb: 'Bekalan Kambing & Bebiri',
+  chicken: 'Bekalan Ayam',
+  seafood: 'Bekalan Makanan Laut',
 };
-const PRODUCT_FACTOR: Record<Product, number> = { platform: 1.15, analytics: 0.85, hr: 0.85, services: 0.55 };
+const PRODUCT_FACTOR: Record<Product, number> = { beef: 1.15, lamb: 1.0, chicken: 0.7, seafood: 0.9 };
 const LOST_W: [LostReason, number][] = [
   ['price', 0.24],
   ['competitor', 0.22],
@@ -228,7 +217,8 @@ interface ChannelCfg {
   campaigns: { name: (q: string, i: number) => string; budget: [number, number]; window?: 'month' }[];
 }
 
-const CHANNEL_CFG: Record<Channel, ChannelCfg> = {
+// Only marketing channels run campaigns in the demo data.
+const CHANNEL_CFG: Record<MarketingChannel, ChannelCfg> = {
   linkedin: {
     cpl: 900,
     mqlRate: 0.42,
@@ -346,6 +336,14 @@ export function seed(db: Db, opts: SeedOptions): SeedSummary {
               ? 'tier2'
               : 'tier3',
       created_at: createdAt,
+      legal_name: null,
+      contact_name: null,
+      phone: null,
+      sales_estimate: null,
+      rating: null,
+      area: null,
+      socials: null,
+      source: null,
     };
     accounts.push(acc);
     return acc;
@@ -364,7 +362,7 @@ export function seed(db: Db, opts: SeedOptions): SeedSummary {
   const lastQ = D.quarterOf(D.addMonths(D.quarterOf(today).start, 3)); // include next quarter (planned)
   for (let qStart = firstQ.start, qi = 0; qStart <= lastQ.start; qStart = D.addMonths(qStart, 3), qi++) {
     const q = D.quarterOf(qStart);
-    for (const channel of CHANNELS) {
+    for (const channel of MARKETING_CHANNELS) {
       for (const tpl of CHANNEL_CFG[channel].campaigns) {
         let start = q.start;
         let end = q.end;
@@ -488,7 +486,8 @@ export function seed(db: Db, opts: SeedOptions): SeedSummary {
   let sdrTurn = 0;
   for (const c of campaigns) {
     if (c.status === 'planned' || c.spend <= 0) continue;
-    const cfg = CHANNEL_CFG[c.channel];
+    const cfg = CHANNEL_CFG[c.channel as MarketingChannel];
+    if (!cfg) continue;
     const effEnd = c.end_date < today ? c.end_date : today;
     const span = D.diffDays(c.start_date, effEnd);
     const n = Math.round((c.spend / cfg.cpl) * rng.float(0.85, 1.15));
@@ -537,6 +536,7 @@ export function seed(db: Db, opts: SeedOptions): SeedSummary {
         id: leads.length + 1,
         name: person.name,
         email: '',
+        phone: null,
         title: rng.pick(TITLES[segment]),
         company: existing?.name ?? '',
         industry,

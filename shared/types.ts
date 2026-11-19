@@ -28,6 +28,13 @@ export interface Rep {
   active: number;
 }
 
+/** A rep with the quota for the current month, as listed on the team page. */
+export interface RepRow extends Rep {
+  monthly_quota: number | null;
+  open_deals: number;
+  accounts: number;
+}
+
 export interface Account {
   id: number;
   name: string;
@@ -39,6 +46,17 @@ export interface Account {
   owner_id: number | null;
   tier: AbmTier;
   created_at: string;
+  legal_name: string | null;
+  contact_name: string | null;
+  phone: string | null;
+  /** Estimated sales from the imported prospect list (RM). */
+  sales_estimate: number | null;
+  rating: number | null;
+  /** Areas served, as free text. */
+  area: string | null;
+  /** JSON object of social links (facebook, instagram, tiktok, threads, youtube). */
+  socials: string | null;
+  source: string | null;
 }
 
 export interface Deal {
@@ -75,6 +93,7 @@ export interface Lead {
   id: number;
   name: string;
   email: string | null;
+  phone: string | null;
   title: string | null;
   company: string;
   industry: Industry;

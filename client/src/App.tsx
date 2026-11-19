@@ -20,6 +20,7 @@ import {
   Target,
   TrendingUp,
   UserPlus,
+  Users,
 } from 'lucide-react';
 import { useI18n } from './lib/i18n.tsx';
 import { errorMessage } from './lib/errors.ts';
@@ -38,6 +39,7 @@ const LeadsPage = lazy(() => import('./pages/LeadsPage.tsx'));
 const CampaignsPage = lazy(() => import('./pages/CampaignsPage.tsx'));
 const AccountsPage = lazy(() => import('./pages/AccountsPage.tsx'));
 const AccountDetailPage = lazy(() => import('./pages/AccountDetailPage.tsx'));
+const TeamPage = lazy(() => import('./pages/TeamPage.tsx'));
 
 type Icon = ComponentType<{ 'aria-hidden'?: boolean }>;
 
@@ -90,6 +92,7 @@ export function App() {
     { to: '/leads', label: t('nav.leads'), icon: UserPlus, tile: 'var(--tile-pink)' },
     { to: '/campaigns', label: t('nav.campaigns'), icon: Target, tile: 'var(--tile-purple)' },
     { to: '/accounts', label: t('nav.accounts'), icon: Building2, tile: 'var(--tile-gray)' },
+    { to: '/team', label: t('nav.team'), icon: Users, tile: 'var(--tile-blue)' },
   ];
   const groups = [
     { label: t('nav.dashboards'), items: dashboards },
@@ -196,6 +199,7 @@ export function App() {
             <Route path="/campaigns" element={<CampaignsPage />} />
             <Route path="/accounts" element={<AccountsPage />} />
             <Route path="/accounts/:id" element={<AccountDetailPage />} />
+            <Route path="/team" element={<TeamPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>

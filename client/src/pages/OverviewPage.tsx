@@ -33,6 +33,9 @@ export default function OverviewPage() {
   const target = kpis.target;
   const revenue = kpis.revenue.value ?? 0;
   const attainment = target ? revenue / target : null;
+  // Draw the target line only once quotas exist for the period.
+  const showTarget = data.targetAvailable && data.revenueSeries.some((r) => (r.target ?? 0) > 0);
+  const noRevenue = data.revenueSeries.every((r) => !r.revenue);
 
   const closingCols: Column<DealRow>[] = [
     {
@@ -68,7 +71,7 @@ export default function OverviewPage() {
             <Delta kpi={kpis.revenue} />
           </div>
           <div className="hero-meta">
-            {target !== null ? (
+            {target ? (
               <>
                 <div className="hero-row">
                   <span>{t('kpi.ofTarget', { pct: fmt.pct0(attainment) })}</span>
@@ -84,7 +87,7 @@ export default function OverviewPage() {
               </>
             ) : (
               <p className="muted" style={{ margin: 0 }}>
-                {t('kpi.targetNA')}
+                {target === null ? t('kpi.targetNA') : t('kpi.noTarget')}
               </p>
             )}
           </div>
@@ -111,9 +114,10 @@ export default function OverviewPage() {
           <ChartCard
             title={t('chart.revenueVsTarget')}
             sub={t('chart.revenueVsTargetSub', { g: gLabel })}
+            empty={noRevenue && !showTarget}
             legend={[
               { label: t('col.revenue'), color: SERIES[0] },
-              ...(data.targetAvailable ? [{ label: t('col.target'), color: 'var(--text-secondary)', kind: 'line' as const }] : []),
+              ...(showTarget ? [{ label: t('col.target'), color: 'var(--text-secondary)', kind: 'line' as const }] : []),
             ]}
             table={{
               columns: [{ label: t('col.period') }, { label: t('col.revenue'), align: 'right' }, { label: t('col.target'), align: 'right' }, { label: '%', align: 'right' }],
@@ -139,7 +143,7 @@ export default function OverviewPage() {
                   })}
                 />
                 <Bar dataKey="revenue" fill={SERIES[0]} radius={[4, 4, 0, 0]} maxBarSize={24} isAnimationActive={false} />
-                {data.targetAvailable && (
+                {showTarget && (
                   <Line
                     dataKey="target"
                     stroke="var(--text-secondary)"
@@ -173,6 +177,7 @@ export default function OverviewPage() {
           <ChartCard
             title={t('chart.revenueBySource')}
             sub={t('chart.revenueBySourceSub', { g: gLabel })}
+            empty={noRevenue}
             legend={SOURCES.map((s, i) => ({ label: t(`source.${s}`), color: SERIES[i] }))}
             table={{
               columns: [{ label: t('col.period') }, ...SOURCES.map((s) => ({ label: t(`source.${s}`), align: 'right' as const }))],
@@ -212,6 +217,7 @@ export default function OverviewPage() {
           <ChartCard
             title={t('chart.pipelineByStage')}
             sub={t('chart.pipelineByStageSub')}
+            empty={data.pipelineByStage.every((s) => !s.count)}
             table={{
               columns: [
                 { label: t('col.stage') },

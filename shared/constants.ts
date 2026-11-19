@@ -7,20 +7,16 @@ export type Segment = (typeof SEGMENTS)[number];
 export const REGIONS = ['klang_valley', 'northern', 'southern', 'east_coast', 'sabah', 'sarawak'] as const;
 export type Region = (typeof REGIONS)[number];
 
-export const INDUSTRIES = [
-  'manufacturing',
-  'finance',
-  'retail',
-  'logistics',
-  'healthcare',
-  'technology',
-  'energy',
-  'property',
-] as const;
+// Customer categories (the CRM's "kategori"). Keys match the imported CRM data.
+export const INDUSTRIES = ['restoran_halal_western', 'kafe_premium_steak_bbq', 'penjual_perap_online', 'other'] as const;
 export type Industry = (typeof INDUSTRIES)[number];
 
-// Marketing channels. Order is the categorical colour order in charts - never reorder.
-export const CHANNELS = ['linkedin', 'search', 'events', 'email', 'content', 'referral'] as const;
+// Lead channels. Order is the categorical colour order in charts - never reorder.
+// The first six are marketing channels with campaigns; "prospect_list" is an
+// imported or researched prospect list (charted in neutral grey).
+export const MARKETING_CHANNELS = ['linkedin', 'search', 'events', 'email', 'content', 'referral'] as const;
+export const CHANNELS = [...MARKETING_CHANNELS, 'prospect_list'] as const;
+export type MarketingChannel = (typeof MARKETING_CHANNELS)[number];
 export type Channel = (typeof CHANNELS)[number];
 
 // Where a deal came from.
@@ -41,7 +37,8 @@ export const STAGE_PROBABILITY: Record<Stage, number> = {
   lost: 0,
 };
 
-export const PRODUCTS = ['platform', 'analytics', 'hr', 'services'] as const;
+// Frozen halal meat & seafood product lines.
+export const PRODUCTS = ['beef', 'lamb', 'chicken', 'seafood'] as const;
 export type Product = (typeof PRODUCTS)[number];
 
 export const DEAL_TYPES = ['new_business', 'expansion'] as const;

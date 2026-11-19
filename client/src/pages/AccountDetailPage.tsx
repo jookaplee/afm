@@ -9,6 +9,11 @@ import { Card, ErrorState, LeadStatusBadge, Loading, PageHeader, StageBadge } fr
 import { StatTile } from '../components/charts.tsx';
 import { DataTable, type Column } from '../components/DataTable.tsx';
 import { AccountFormModal, DealFormModal } from '../components/forms.tsx';
+import { ContactLinks } from '../components/ContactLinks.tsx';
+import { socialLinks } from '../lib/contact.ts';
+
+const SOCIAL_LABEL: Record<string, string> = { facebook: 'Facebook', instagram: 'Instagram', tiktok: 'TikTok', threads: 'Threads', youtube: 'YouTube' };
+const safeHref = (u: string | null) => (u && /^https?:\/\//i.test(u) ? u : null);
 
 const ACTIVITY_ICON: Record<ActivityType, typeof Phone> = { call: Phone, email: Mail, meeting: Users, demo: Presentation };
 
@@ -92,20 +97,76 @@ export default function AccountDetailPage() {
           </Card>
           <Card title={t('account.profile')}>
             <dl className="dl">
+              {a.legal_name && (
+                <>
+                  <dt>{t('account.legalName')}</dt>
+                  <dd>{a.legal_name}</dd>
+                </>
+              )}
+              <dt>{t('account.contact')}</dt>
+              <dd>{a.contact_name ?? '—'}</dd>
+              <dt>{t('col.phone')}</dt>
+              <dd>
+                <ContactLinks phone={a.phone} />
+              </dd>
               <dt>{t('col.industry')}</dt>
               <dd>{t(`industry.${a.industry}`)}</dd>
               <dt>{t('col.segment')}</dt>
               <dd>{t(`segment.${a.segment}`)}</dd>
+              {a.sales_estimate != null && (
+                <>
+                  <dt>{t('account.salesEstimate')}</dt>
+                  <dd className="num">{fmt.money(a.sales_estimate)}</dd>
+                </>
+              )}
+              {a.rating != null && (
+                <>
+                  <dt>{t('account.rating')}</dt>
+                  <dd className="num">★ {fmt.dec(a.rating)} / 5</dd>
+                </>
+              )}
               <dt>{t('col.region')}</dt>
               <dd>{t(`region.${a.region}`)}</dd>
+              {a.area && (
+                <>
+                  <dt>{t('account.area')}</dt>
+                  <dd>{a.area}</dd>
+                </>
+              )}
               <dt>{t('col.tier')}</dt>
               <dd>{t(`tier.${a.tier}`)}</dd>
               <dt>{t('col.owner')}</dt>
               <dd>{a.owner_name ?? '—'}</dd>
-              <dt>{t('col.employees')}</dt>
-              <dd className="num">{fmt.num(a.employees)}</dd>
               <dt>{t('field.website')}</dt>
-              <dd>{a.website ?? '—'}</dd>
+              <dd>
+                {safeHref(a.website) ? (
+                  <a href={safeHref(a.website)!} target="_blank" rel="noopener noreferrer">
+                    {a.website!.replace(/^https?:\/\/(www\.)?/i, '').replace(/\/$/, '')}
+                  </a>
+                ) : (
+                  '—'
+                )}
+              </dd>
+              {socialLinks(a.socials).length > 0 && (
+                <>
+                  <dt>{t('account.socials')}</dt>
+                  <dd>
+                    <span className="link-list">
+                      {socialLinks(a.socials).map((l) => (
+                        <a key={l.key} className="chip" href={l.url} target="_blank" rel="noopener noreferrer">
+                          {SOCIAL_LABEL[l.key] ?? l.key}
+                        </a>
+                      ))}
+                    </span>
+                  </dd>
+                </>
+              )}
+              {a.source && (
+                <>
+                  <dt>{t('account.source')}</dt>
+                  <dd className="muted">{a.source}</dd>
+                </>
+              )}
               <dt>{t('account.since')}</dt>
               <dd>{fmt.date(a.created_at)}</dd>
             </dl>

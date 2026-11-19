@@ -17,7 +17,7 @@ const newDeal = (name: string) => ({
   owner_id: 1,
   stage: 'proposal',
   amount: 70_000,
-  product: 'platform',
+  product: 'beef',
   type: 'new_business',
   source: 'sales',
   expected_close: '2026-12-20',
@@ -54,7 +54,7 @@ describe('standalone persistence', () => {
 
   it('starts from today when nothing has been saved yet', async () => {
     const store = memoryStore();
-    store.meta = { epoch: 'e1', anchor: '2026-01-01', seedVersion: 1 };
+    store.meta = { epoch: 'e1', anchor: '2026-01-01', base: 'demo-2' };
     const api = await createLocalApi({ SQL, store, today: () => '2026-11-18' });
     const info = (await api.request('GET', '/_persistence')).body as { anchor: string };
     assert.equal(info.anchor, '2026-11-18');
@@ -136,5 +136,39 @@ describe('browser storage (any host outside claude.ai)', () => {
       removeItem: () => {},
     };
     assert.equal(browserStore(broken), null);
+  });
+});
+
+describe('starting data (base)', () => {
+  it('starts afresh when the starting data changes and removes the old changes', async () => {
+    const { crmBase } = await import('../../client/src/standalone/local-api.ts');
+    const store = memoryStore();
+    const demo = await createLocalApi({ SQL, store, today: () => '2026-11-18' });
+    assert.equal((await demo.request('POST', '/deals', newDeal('Dari data demo'))).status, 201);
+    assert.equal(store.changes.length, 1);
+
+    const dataset = JSON.stringify({
+      leads: [
+        { category: 'restoran_halal_western', name: 'Kedai Ujian Grill', salesValue: 1_200_000, company: 'Ujian Grill Sdn Bhd', primaryRegion: 'Johor', owner: 'Encik Ujian', phone: '012-3456789', ratingValue: 4.6, website: 'https://example.com' },
+      ],
+    });
+    const imported = await createLocalApi({ SQL, store, today: () => '2026-11-19', base: crmBase(dataset) });
+    const accounts = (await imported.request('GET', '/accounts?pageSize=10')).body as Paged<{ name: string; segment: string; region: string }>;
+    assert.equal(accounts.total, 1);
+    assert.deepEqual([accounts.rows[0].name, accounts.rows[0].segment, accounts.rows[0].region], ['Kedai Ujian Grill', 'enterprise', 'southern']);
+    const deals = (await imported.request('GET', '/deals?pageSize=10&stage=open')).body as Paged<DealRow>;
+    assert.equal(deals.total, 0, 'demo-era changes must not be replayed on imported data');
+
+    // First save on the new data stores a new meta and clears the old journal.
+    const leadId = ((await imported.request('GET', '/leads?pageSize=1')).body as Paged<{ id: number }>).rows[0].id;
+    assert.equal((await imported.request('PATCH', `/leads/${leadId}`, { status: 'mql' })).status, 200);
+    await new Promise((r) => setTimeout(r, 10));
+    assert.equal(store.meta?.base.startsWith('crm-'), true);
+    assert.equal(store.changes.length, 1);
+
+    const again = await createLocalApi({ SQL, store, today: () => '2026-11-25', base: crmBase(dataset) });
+    const lead = (await again.request('GET', `/leads/${leadId}`)).body as { status: string; created_at: string };
+    assert.equal(lead.status, 'mql');
+    assert.equal(lead.created_at, '2026-11-19');
   });
 });

@@ -2,12 +2,12 @@
 //
 // The page never stores the whole database. It stores a *journal* of the
 // changes people make (each create / update / delete API call), plus a small
-// meta document with the date the demo data was generated from. On load the
-// demo data is regenerated deterministically from that date and the journal
-// is replayed on top, which reproduces exactly the same records and ids.
-
-/** Bump when the demo-data generator changes in a way that alters ids. */
-export const SEED_VERSION = 1;
+// meta document naming the starting data ("base": the demo generator or an
+// imported prospect list) and the date it was generated from. On load the base
+// is rebuilt deterministically and the journal is replayed on top, which
+// reproduces exactly the same records and ids. When the base changes (a new
+// import, or a new generator version) earlier changes no longer apply and the
+// page starts afresh.
 
 export interface ChangeRecord {
   /** Which data generation the change belongs to (a reset starts a new one). */
@@ -25,9 +25,10 @@ export interface ChangeRecord {
 
 export interface Meta {
   epoch: string;
-  /** Date the demo data was generated from. */
+  /** Date the starting data was generated from. */
   anchor: string;
-  seedVersion: number;
+  /** Which starting data the journal applies to. */
+  base: string;
 }
 
 export interface Store {
@@ -143,7 +144,7 @@ export async function connectArtifactStore(): Promise<Store | null> {
       const snap = await withTimeout(store.doc(META).get(), 10_000, 'read meta');
       const d = snap.exists ? snap.data() : undefined;
       if (!d || typeof d.epoch !== 'string' || typeof d.anchor !== 'string') return null;
-      return { epoch: d.epoch, anchor: d.anchor, seedVersion: Number(d.seedVersion ?? 0) };
+      return { epoch: d.epoch, anchor: d.anchor, base: typeof d.base === 'string' ? d.base : '' };
     },
     async writeMeta(meta) {
       await store.doc(META).set({ ...meta });
@@ -172,8 +173,11 @@ export async function connectArtifactStore(): Promise<Store | null> {
       await store.collection(CHANGES).doc().set(body);
     },
     async pruneOtherEpochs(epoch) {
-      const snap = await store.collection(CHANGES).where('epoch', '!=', epoch).limit(200).get();
-      for (const doc of snap.docs) await store.collection(CHANGES).doc(doc.id).delete();
+      for (let round = 0; round < 30; round++) {
+        const snap = await store.collection(CHANGES).where('epoch', '!=', epoch).limit(200).get();
+        if (!snap.docs.length) break;
+        for (const doc of snap.docs) await store.collection(CHANGES).doc(doc.id).delete();
+      }
     },
   };
 }

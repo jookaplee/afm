@@ -51,7 +51,7 @@ describe('standalone (sql.js) router', () => {
       owner_id: 1,
       stage: 'proposal',
       amount: 50_000,
-      product: 'hr',
+      product: 'chicken',
       type: 'new_business',
       source: 'sales',
       expected_close: '2026-08-01',

@@ -1,16 +1,26 @@
 import { resolve } from 'node:path';
 import { config } from './config.ts';
 import { isEmpty, openDb } from './db.ts';
+import { existsSync, readFileSync } from 'node:fs';
 import { seed } from './seed.ts';
+import { importCrm, parseCrmInput } from './import-crm.ts';
 import { todayLocal } from '../shared/dates.ts';
 import { createApp } from './app.ts';
 
 const today = () => config.today ?? todayLocal();
 const db = openDb(config.dbPath);
 
+/** Starting data: the imported prospect list when present, else demo data. */
+const resetBase = () => {
+  if (existsSync(config.datasetPath)) {
+    return importCrm(db, parseCrmInput(readFileSync(config.datasetPath, 'utf8')), { today: today() });
+  }
+  return seed(db, { today: today() });
+};
+
 if (isEmpty(db)) {
-  const summary = seed(db, { today: today() });
-  console.log(`Database was empty - generated demo data:`, summary);
+  const summary = resetBase();
+  console.log(`Database was empty - loaded starting data:`, summary);
 }
 
 const app = createApp({
@@ -18,6 +28,7 @@ const app = createApp({
   today,
   appName: config.appName,
   allowReset: config.allowReset,
+  resetBase,
   staticDir: process.env.NODE_ENV === 'production' ? resolve(config.root, 'dist') : undefined,
 });
 

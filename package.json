@@ -16,7 +16,8 @@
     "seed": "node --disable-warning=ExperimentalWarning server/seed-cli.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.server.json --noEmit",
     "test": "node --disable-warning=ExperimentalWarning --test \"server/tests/**/*.test.ts\"",
-    "build:standalone": "vite build --mode standalone && node scripts/build-artifact.mjs"
+    "build:standalone": "vite build --mode standalone && node scripts/build-artifact.mjs",
+    "import": "node --disable-warning=ExperimentalWarning server/import-cli.ts"
   },
   "dependencies": {
     "express": "5.2.1"

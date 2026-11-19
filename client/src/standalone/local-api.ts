@@ -12,7 +12,8 @@ import { seed } from '../../../server/seed.ts';
 import { createRouter, type ApiResult } from '../../../server/routes.ts';
 import { todayLocal } from '../../../shared/dates.ts';
 import { wrapSqlJs } from './sqljs-db.ts';
-import { SEED_VERSION, browserStore, connectArtifactStore, type ChangeRecord, type Store } from './persistence.ts';
+import { browserStore, connectArtifactStore, type ChangeRecord, type Store } from './persistence.ts';
+import { datasetFingerprint, importCrm, parseCrmInput } from '../../../server/import-crm.ts';
 
 export type PersistenceMode = 'cloud' | 'device' | 'memory' | 'readonly';
 
@@ -27,10 +28,26 @@ export interface PersistenceInfo {
 const MUTATING = new Set(['POST', 'PATCH', 'PUT', 'DELETE']);
 const randomId = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 
+/** The data a fresh database starts from. `id` changes whenever the data would. */
+export interface BaseData {
+  id: string;
+  load: (db: Db, today: string) => void;
+}
+
+/** Bump the version when the demo generator changes in a way that alters ids. */
+export const DEMO_BASE: BaseData = { id: 'demo-2', load: (db, today) => void seed(db, { today }) };
+
+/** Starting data from an imported prospect list (the CRM export JSON or HTML). */
+export function crmBase(text: string): BaseData {
+  const dataset = parseCrmInput(text);
+  return { id: `crm-${datasetFingerprint(text)}`, load: (db, today) => void importCrm(db, dataset, { today }) };
+}
+
 /** Creates an API instance. `store` null = in-memory only. */
-export async function createLocalApi(deps: { SQL: SqlJsStatic; store: Store | null; today?: () => string }) {
+export async function createLocalApi(deps: { SQL: SqlJsStatic; store: Store | null; today?: () => string; base?: BaseData }) {
   const today = deps.today ?? todayLocal;
   const { SQL, store } = deps;
+  const base = deps.base ?? DEMO_BASE;
   const origin = randomId();
 
   let mode: PersistenceMode = store ? (store.canWrite ? store.kind : 'readonly') : 'memory';
@@ -42,6 +59,8 @@ export async function createLocalApi(deps: { SQL: SqlJsStatic; store: Store | nu
   let journal: ChangeRecord[] = [];
   /** Whether the stored meta document matches this session's epoch and anchor. */
   let metaSaved = false;
+  /** Saved changes exist for different starting data and should be cleaned up. */
+  let staleData = false;
   /** Business date seen by the router; overridden while replaying old changes. */
   let replayDate: string | null = null;
 
@@ -64,12 +83,12 @@ export async function createLocalApi(deps: { SQL: SqlJsStatic; store: Store | nu
     }
   };
 
-  /** Regenerates the demo data from `seedDate` and replays `changes` on top. */
+  /** Rebuilds the starting data from `seedDate` and replays `changes` on top. */
   const build = (seedDate: string, changes: ChangeRecord[]) => {
     const raw = new SQL.Database();
     db = wrapSqlJs(raw);
     initSchema(db);
-    seed(db, { today: seedDate });
+    base.load(db, seedDate);
     handle = createRouter({ db, today: () => replayDate ?? today(), appName: 'JOOSONS', allowReset: true }).handle;
     anchor = seedDate;
     let failed = 0;
@@ -83,14 +102,18 @@ export async function createLocalApi(deps: { SQL: SqlJsStatic; store: Store | nu
   if (store) {
     try {
       const meta = await store.readMeta();
-      if (meta) {
+      if (meta && meta.base === base.id) {
         epoch = meta.epoch;
         changes = await store.listChanges(epoch);
         if (changes.length) {
           anchor = meta.anchor;
           metaSaved = true;
-          if (meta.seedVersion !== SEED_VERSION) console.warn('[afm] saved changes were made with another data generator version');
         }
+      } else if (meta) {
+        // The starting data changed: earlier changes belong to other data. Start afresh;
+        // they are removed once this session saves its first change.
+        epoch = randomId();
+        staleData = true;
       }
     } catch (err) {
       console.warn('[afm] could not read saved changes; continuing without saving', err);
@@ -118,8 +141,12 @@ export async function createLocalApi(deps: { SQL: SqlJsStatic; store: Store | nu
     };
     try {
       if (!metaSaved) {
-        await store.writeMeta({ epoch, anchor, seedVersion: SEED_VERSION });
+        await store.writeMeta({ epoch, anchor, base: base.id });
         metaSaved = true;
+        if (staleData) {
+          staleData = false;
+          void store.pruneOtherEpochs(epoch).catch(() => {});
+        }
       }
       await store.appendChange(change);
       journal.push(change);
@@ -154,7 +181,7 @@ export async function createLocalApi(deps: { SQL: SqlJsStatic; store: Store | nu
     if (store && saving()) {
       const next = randomId();
       try {
-        await store.writeMeta({ epoch: next, anchor: date, seedVersion: SEED_VERSION });
+        await store.writeMeta({ epoch: next, anchor: date, base: base.id });
       } catch {
         return err(503, 'persist_failed', 'The change could not be saved. Please try again.');
       }
@@ -214,7 +241,18 @@ function api() {
     // Outside a claude.ai viewer (or when its database is unavailable) keep changes in this browser.
     const store = cloud ?? browserStore();
     const SQL = await initSqlJs();
-    return createLocalApi({ SQL, store });
+    // A prospect list embedded in the page (<script id="crm-dataset">) replaces the demo data.
+    const doc = (globalThis as { document?: { getElementById(id: string): { textContent: string | null } | null } }).document;
+    const embedded = doc?.getElementById('crm-dataset')?.textContent;
+    let base = DEMO_BASE;
+    if (embedded && embedded.trim()) {
+      try {
+        base = crmBase(embedded);
+      } catch (e) {
+        console.warn('[afm] embedded dataset could not be read; using demo data', e);
+      }
+    }
+    return createLocalApi({ SQL, store, base });
   })();
   return instance;
 }

@@ -9,6 +9,7 @@ import {
   LOST_REASONS,
   PRODUCTS,
   REGIONS,
+  REP_ROLES,
   SEGMENTS,
   SOURCES,
   STAGES,
@@ -16,12 +17,12 @@ import {
   type LostReason,
 } from '../../../shared/constants.ts';
 import * as D from '../../../shared/dates.ts';
-import type { AccountRow, CampaignPerformance, DealRow, LeadRow, Paged } from '../../../shared/types.ts';
+import type { AccountRow, CampaignPerformance, DealRow, LeadRow, Paged, RepRow } from '../../../shared/types.ts';
 import { api, ApiError } from '../lib/api.ts';
 import { errorMessage } from '../lib/errors.ts';
 import { useConfirm, useMeta, useToast } from '../lib/app-context.tsx';
 import { useI18n } from '../lib/i18n.tsx';
-import { Field, Modal } from './ui.tsx';
+import { Field, Modal, Switch } from './ui.tsx';
 
 type Values = Record<string, string>;
 
@@ -294,7 +295,7 @@ export function DealFormModal({
     owner_id: String(deal?.owner_id ?? aes[0]?.id ?? ''),
     stage: deal?.stage ?? 'prospecting',
     amount: deal ? String(deal.amount) : '',
-    product: deal?.product ?? 'platform',
+    product: deal?.product ?? 'beef',
     type: deal?.type ?? 'new_business',
     source: deal?.source ?? 'sales',
     channel: deal?.channel ?? '',
@@ -458,7 +459,7 @@ export function LostReasonModal({ dealName, onCancel, onConfirm }: { dealName: s
 
 export function LeadFormModal({ lead, onClose, onSaved }: { lead?: LeadRow | null; onClose: () => void; onSaved: () => void }) {
   const { t } = useI18n();
-  const { meta, sdrs } = useMeta();
+  const { meta, activeReps } = useMeta();
   const toast = useToast();
   const confirm = useConfirm();
   const editing = !!lead;
@@ -467,12 +468,13 @@ export function LeadFormModal({ lead, onClose, onSaved }: { lead?: LeadRow | nul
     email: lead?.email ?? '',
     title: lead?.title ?? '',
     company: lead?.company ?? '',
-    industry: lead?.industry ?? 'manufacturing',
+    industry: lead?.industry ?? 'restoran_halal_western',
     segment: lead?.segment ?? 'midmarket',
-    region: lead?.region ?? 'jabodetabek',
-    channel: lead?.channel ?? 'linkedin',
+    region: lead?.region ?? 'klang_valley',
+    channel: lead?.channel ?? 'prospect_list',
     campaign_id: lead?.campaign_id ? String(lead.campaign_id) : '',
-    owner_id: lead?.owner_id ? String(lead.owner_id) : String(sdrs[0]?.id ?? ''),
+    owner_id: lead?.owner_id ? String(lead.owner_id) : '',
+    phone: lead?.phone ?? '',
     score: String(lead?.score ?? 20),
   });
   const v = f.values;
@@ -483,6 +485,7 @@ export function LeadFormModal({ lead, onClose, onSaved }: { lead?: LeadRow | nul
       const body = {
         name: v.name,
         email: orNull(v.email),
+        phone: orNull(v.phone),
         title: orNull(v.title),
         company: v.company,
         industry: v.industry,
@@ -522,6 +525,9 @@ export function LeadFormModal({ lead, onClose, onSaved }: { lead?: LeadRow | nul
       </Field>
       <Field label={t('field.title')} error={f.errors.title} htmlFor="lead-title">
         <input id="lead-title" className="input" value={v.title} onChange={(e) => f.set('title', e.target.value)} maxLength={120} />
+      </Field>
+      <Field label={t('field.phone')} error={f.errors.phone} htmlFor="lead-phone">
+        <input id="lead-phone" className="input" type="tel" inputMode="tel" value={v.phone} onChange={(e) => f.set('phone', e.target.value)} maxLength={40} />
       </Field>
       <Field label={t('field.email')} error={f.errors.email} htmlFor="lead-email">
         <input id="lead-email" className="input" type="email" value={v.email} onChange={(e) => f.set('email', e.target.value)} maxLength={200} />
@@ -563,7 +569,7 @@ export function LeadFormModal({ lead, onClose, onSaved }: { lead?: LeadRow | nul
       <Field label={t('field.sdr')} error={f.errors.owner_id} htmlFor="lead-owner">
         <select id="lead-owner" className="select" value={v.owner_id} onChange={(e) => f.set('owner_id', e.target.value)}>
           <option value="">{t('field.none')}</option>
-          {sdrs.map((r) => (
+          {activeReps.map((r) => (
             <option key={r.id} value={r.id}>
               {r.name}
             </option>
@@ -586,7 +592,7 @@ export function ConvertLeadModal({ lead, onClose, onSaved }: { lead: LeadRow; on
     deal_name: '',
     owner_id: String(defaultOwner?.id ?? ''),
     amount: '',
-    product: 'platform',
+    product: 'beef',
     expected_close: D.addDays(meta.today, 60),
   });
   const v = f.values;
@@ -749,11 +755,15 @@ export function AccountFormModal({
   const editing = !!account;
   const f = useForm({
     name: account?.name ?? '',
-    industry: account?.industry ?? 'manufacturing',
+    industry: account?.industry ?? 'restoran_halal_western',
     segment: account?.segment ?? 'midmarket',
-    region: account?.region ?? 'jabodetabek',
+    region: account?.region ?? 'klang_valley',
     employees: account ? String(account.employees) : '',
     website: account?.website ?? '',
+    legal_name: account?.legal_name ?? '',
+    contact_name: account?.contact_name ?? '',
+    phone: account?.phone ?? '',
+    sales_estimate: account?.sales_estimate != null ? String(account.sales_estimate) : '',
     owner_id: account?.owner_id ? String(account.owner_id) : '',
     tier: account?.tier ?? '',
   });
@@ -767,6 +777,10 @@ export function AccountFormModal({
         region: v.region,
         employees: toInt(v.employees),
         website: orNull(v.website),
+        legal_name: orNull(v.legal_name),
+        contact_name: orNull(v.contact_name),
+        phone: orNull(v.phone),
+        sales_estimate: toInt(v.sales_estimate),
         owner_id: toInt(v.owner_id),
         tier: orNull(v.tier),
       };
@@ -827,9 +841,99 @@ export function AccountFormModal({
       <Field label={t('field.employees')} error={f.errors.employees} htmlFor="ac-emp">
         <input id="ac-emp" className="input" inputMode="numeric" value={v.employees} onChange={(e) => f.set('employees', e.target.value.replace(/[^\d]/g, ''))} />
       </Field>
+      <Field label={t('field.legalName')} error={f.errors.legal_name} full htmlFor="ac-legal">
+        <input id="ac-legal" className="input" value={v.legal_name} onChange={(e) => f.set('legal_name', e.target.value)} maxLength={200} />
+      </Field>
+      <Field label={t('field.contactName')} error={f.errors.contact_name} htmlFor="ac-contact">
+        <input id="ac-contact" className="input" value={v.contact_name} onChange={(e) => f.set('contact_name', e.target.value)} maxLength={120} />
+      </Field>
+      <Field label={t('field.phone')} error={f.errors.phone} htmlFor="ac-phone">
+        <input id="ac-phone" className="input" type="tel" inputMode="tel" value={v.phone} onChange={(e) => f.set('phone', e.target.value)} maxLength={40} />
+      </Field>
+      <Field label={t('field.salesEstimate')} error={f.errors.sales_estimate} htmlFor="ac-sales">
+        <input
+          id="ac-sales"
+          className="input"
+          inputMode="numeric"
+          value={v.sales_estimate}
+          onChange={(e) => f.set('sales_estimate', e.target.value.replace(/[^\d]/g, ''))}
+        />
+      </Field>
       <Field label={t('field.website')} error={f.errors.website} full htmlFor="ac-web">
         <input id="ac-web" className="input" value={v.website} onChange={(e) => f.set('website', e.target.value)} maxLength={200} />
       </Field>
+    </FormShell>
+  );
+}
+
+// ---------- Team member form ----------
+
+export function RepFormModal({ rep, onClose, onSaved }: { rep?: RepRow | null; onClose: () => void; onSaved: () => void }) {
+  const { t } = useI18n();
+  const { reload } = useMeta();
+  const toast = useToast();
+  const editing = !!rep;
+  const f = useForm({
+    name: rep?.name ?? '',
+    email: rep?.email ?? '',
+    role: rep?.role ?? 'AE',
+    team: rep?.team ?? 'smb',
+    monthly_quota: rep?.monthly_quota != null ? String(rep.monthly_quota) : '',
+    active: rep ? String(rep.active) : '1',
+  });
+  const v = f.values;
+  const save = () =>
+    f.submit(async () => {
+      const body = {
+        name: v.name,
+        email: orNull(v.email),
+        role: v.role,
+        team: v.role === 'SDR' ? 'sdr' : v.team === 'sdr' ? 'smb' : v.team,
+        monthly_quota: toInt(v.monthly_quota),
+        active: Number(v.active),
+      };
+      if (editing) await api.patch(`/reps/${rep!.id}`, body);
+      else await api.post('/reps', body);
+      toast(editing ? t('common.saved') : t('common.created'));
+      reload();
+      onSaved();
+    });
+  return (
+    <FormShell title={editing ? t('team.edit') : t('team.new')} onClose={onClose} onSubmit={save} busy={f.busy} formError={f.formError}>
+      <Field label={t('field.repName')} error={f.errors.name} htmlFor="rep-name">
+        <input id="rep-name" className="input" value={v.name} onChange={(e) => f.set('name', e.target.value)} maxLength={120} />
+      </Field>
+      <Field label={t('field.email')} error={f.errors.email} htmlFor="rep-email">
+        <input id="rep-email" className="input" type="email" value={v.email} onChange={(e) => f.set('email', e.target.value)} maxLength={200} />
+      </Field>
+      <Field label={t('field.role')} error={f.errors.role} htmlFor="rep-role">
+        <EnumSelect id="rep-role" value={v.role} onChange={(x) => f.set('role', x)} options={REP_ROLES} render={(x) => t(`role.${x}`)} />
+      </Field>
+      {v.role === 'AE' ? (
+        <Field label={t('field.team')} error={f.errors.team} htmlFor="rep-team">
+          <EnumSelect
+            id="rep-team"
+            value={v.team === 'sdr' ? 'smb' : v.team}
+            onChange={(x) => f.set('team', x)}
+            options={SEGMENTS}
+            render={(x) => t(`segment.${x}`)}
+          />
+        </Field>
+      ) : (
+        <div />
+      )}
+      <Field label={t('field.monthlyQuota')} error={f.errors.monthly_quota} help={t('field.monthlyQuotaHelp')} htmlFor="rep-quota">
+        <input
+          id="rep-quota"
+          className="input"
+          inputMode="numeric"
+          value={v.monthly_quota}
+          onChange={(e) => f.set('monthly_quota', e.target.value.replace(/[^\d]/g, ''))}
+        />
+      </Field>
+      <div className="field" style={{ justifyContent: 'flex-end' }}>
+        <Switch checked={v.active === '1'} onChange={(on) => f.set('active', on ? '1' : '0')} label={t('field.active')} />
+      </div>
     </FormShell>
   );
 }

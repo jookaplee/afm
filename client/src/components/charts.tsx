@@ -7,7 +7,8 @@ import { Hint } from './ui.tsx';
 // ---------- Palette helpers ----------
 
 /** Categorical slots in fixed order. Colour follows the entity, never its rank. */
-export const SERIES = ['var(--series-1)', 'var(--series-2)', 'var(--series-3)', 'var(--series-4)', 'var(--series-5)', 'var(--series-6)'];
+/** Slot 7 is neutral grey: the non-marketing "prospect list" channel (an "other" fold, not an eighth hue). */
+export const SERIES = ['var(--series-1)', 'var(--series-2)', 'var(--series-3)', 'var(--series-4)', 'var(--series-5)', 'var(--series-6)', 'var(--series-7)'];
 export const ORDINAL = ['var(--ord-1)', 'var(--ord-2)', 'var(--ord-3)', 'var(--ord-4)', 'var(--ord-5)'];
 
 export const axisProps = {
@@ -96,6 +97,7 @@ export function ChartCard({
   children,
   actions,
   className,
+  empty,
 }: {
   title: string;
   sub?: string;
@@ -104,6 +106,8 @@ export function ChartCard({
   children: ReactNode;
   actions?: ReactNode;
   className?: string;
+  /** True when there is nothing to plot: shows the empty state instead of blank axes. */
+  empty?: boolean;
 }) {
   const { t } = useI18n();
   const [asTable, setAsTable] = useState(false);
@@ -116,7 +120,7 @@ export function ChartCard({
         </div>
         <div className="page-actions">
           {actions}
-          {table && (
+          {table && !empty && (
             <button
               className="btn sm ghost icon"
               onClick={() => setAsTable((v) => !v)}
@@ -154,6 +158,10 @@ export function ChartCard({
             </tbody>
           </table>
         </div>
+      ) : empty ? (
+        <div className="card-body">
+          <div className="empty">{t('common.noData')}</div>
+        </div>
       ) : (
         <>
           {legend && legend.length > 1 && <div style={{ paddingTop: 10 }}><Legend items={legend} /></div>}
@@ -170,7 +178,8 @@ export type DeltaMode = 'pct' | 'pp';
 
 export function Sparkline({ values, width = 84, height = 28 }: { values: (number | null)[]; width?: number; height?: number }) {
   const pts = values.map((v, i) => ({ v, i })).filter((p): p is { v: number; i: number } => p.v !== null && Number.isFinite(p.v));
-  if (pts.length < 2) return null;
+  // Nothing to show: too few points, or no activity at all yet.
+  if (pts.length < 2 || pts.every((p) => p.v === 0)) return null;
   const min = Math.min(...pts.map((p) => p.v));
   const max = Math.max(...pts.map((p) => p.v));
   const span = max - min || 1;
@@ -179,7 +188,7 @@ export function Sparkline({ values, width = 84, height = 28 }: { values: (number
   const d = pts.map((p, k) => `${k ? 'L' : 'M'}${x(p.i).toFixed(1)},${y(p.v).toFixed(1)}`).join(' ');
   const last = pts[pts.length - 1];
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height} preserveAspectRatio="none" aria-hidden style={{ flex: '0 1 auto', minWidth: 0, maxWidth: '45%' }}>
+    <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height} preserveAspectRatio="none" aria-hidden style={{ flex: '0 0 auto', maxWidth: '45%' }}>
       <path d={d} fill="none" stroke="var(--series-muted)" strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
       <circle cx={x(last.i)} cy={y(last.v)} r={3.5} fill="var(--accent)" stroke="var(--surface-1)" strokeWidth={2} />
     </svg>

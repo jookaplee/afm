@@ -47,7 +47,15 @@ CREATE TABLE IF NOT EXISTS accounts (
   website    TEXT,
   owner_id   INTEGER REFERENCES reps(id) ON DELETE SET NULL,
   tier       TEXT NOT NULL DEFAULT 'tier3',
-  created_at TEXT NOT NULL
+  created_at TEXT NOT NULL,
+  legal_name     TEXT,
+  contact_name   TEXT,
+  phone          TEXT,
+  sales_estimate INTEGER,
+  rating         REAL,
+  area           TEXT,
+  socials        TEXT,
+  source         TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_accounts_segment ON accounts(segment, region);
 
@@ -66,6 +74,7 @@ CREATE TABLE IF NOT EXISTS leads (
   id           INTEGER PRIMARY KEY,
   name         TEXT NOT NULL,
   email        TEXT,
+  phone        TEXT,
   title        TEXT,
   company      TEXT NOT NULL,
   industry     TEXT NOT NULL,
@@ -125,9 +134,26 @@ CREATE INDEX IF NOT EXISTS idx_activities_rep ON activities(rep_id, date);
 CREATE INDEX IF NOT EXISTS idx_activities_account ON activities(account_id, date);
 `;
 
+/** Columns added after the first release; older databases get them on open. */
+const ADDED_COLUMNS: [table: string, column: string, type: string][] = [
+  ['accounts', 'legal_name', 'TEXT'],
+  ['accounts', 'contact_name', 'TEXT'],
+  ['accounts', 'phone', 'TEXT'],
+  ['accounts', 'sales_estimate', 'INTEGER'],
+  ['accounts', 'rating', 'REAL'],
+  ['accounts', 'area', 'TEXT'],
+  ['accounts', 'socials', 'TEXT'],
+  ['accounts', 'source', 'TEXT'],
+  ['leads', 'phone', 'TEXT'],
+];
+
 export function initSchema(db: Db): void {
   db.exec('PRAGMA foreign_keys = ON;');
   db.exec(SCHEMA);
+  for (const [table, column, type] of ADDED_COLUMNS) {
+    const cols = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+    if (!cols.some((c) => c.name === column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+  }
 }
 
 export function isEmpty(db: Db): boolean {

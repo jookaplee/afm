@@ -3,6 +3,10 @@
 //    (the Artifact host wraps it in its own <html>/<head>/<body>)
 //  - dist-standalone/site/index.html     a complete page for any static host,
 //    e.g. GitHub Pages (see .github/workflows/pages.yml)
+//
+// DATASET=<file.json|file.html> embeds a prospect list (see `npm run import`)
+// as the starting data instead of the demo data. Keep personal data out of
+// pages you publish publicly.
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -16,7 +20,24 @@ const read = (p) => readFileSync(join(dir, p), 'utf8');
 // "</script" inside the bundle would end the inline script early.
 const script = read(js[0]).replace(/<\/script/gi, '<\\/script');
 const styles = css.map(read).join('\n').replace(/<\/style/gi, '<\\/style');
-const description = 'Papan pemuka Jualan &amp; Pemasaran B2B JOOSONS (data dijana dalam pelayar).';
+const description = 'Papan pemuka Jualan &amp; Pemasaran B2B JOOSONS.';
+
+let datasetTag = '';
+if (process.env.DATASET) {
+  const raw = readFileSync(process.env.DATASET, 'utf8');
+  let json = raw;
+  if (raw.trimStart().startsWith('<')) {
+    const m = /<script[^>]*\bid=["']lead-data["'][^>]*>([\s\S]*?)<\/script>/i.exec(raw);
+    const c = /<script[^>]*\bid=["']category-meta["'][^>]*>([\s\S]*?)<\/script>/i.exec(raw);
+    if (!m) throw new Error('DATASET has no <script id="lead-data"> block');
+    json = JSON.stringify({ leads: JSON.parse(m[1]), categories: c ? JSON.parse(c[1]) : undefined });
+  } else {
+    json = JSON.stringify(JSON.parse(raw));
+  }
+  // "<" escaped so the JSON can never close the script element early.
+  datasetTag = `<script id="crm-dataset" type="application/json">${json.replace(/</g, '\\u003c')}</script>\n`;
+  console.log(`Embedding dataset from ${process.env.DATASET} (${(json.length / 1024).toFixed(0)} KB)`);
+}
 const favicon =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23256abf'/%3E%3Crect x='7' y='17' width='4' height='8' rx='1.5' fill='%23fff'/%3E%3Crect x='14' y='12' width='4' height='13' rx='1.5' fill='%23fff'/%3E%3Crect x='21' y='7' width='4' height='18' rx='1.5' fill='%23fff'/%3E%3C/svg%3E";
 
@@ -25,7 +46,7 @@ const artifact = `<title>Papan Pemuka JOOSONS</title>
 <meta name="description" content="${description}">
 <style>${styles}</style>
 <div id="root"></div>
-<script type="module">${script}</script>
+${datasetTag}<script type="module">${script}</script>
 `;
 writeFileSync(join(dir, 'afm-dashboard.html'), artifact);
 
@@ -43,7 +64,7 @@ const site = `<!doctype html>
 </head>
 <body>
 <div id="root"></div>
-<script type="module">${script}</script>
+${datasetTag}<script type="module">${script}</script>
 </body>
 </html>
 `;
