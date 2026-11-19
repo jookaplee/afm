@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
-import type { MetaResponse, Rep } from '../../../shared/types.ts';
+import type { Business, LeadCategory, MetaResponse, Rep } from '../../../shared/types.ts';
 import { api } from './api.ts';
 import { load, save } from './storage.ts';
 import { useI18n } from './i18n.tsx';
@@ -17,12 +17,24 @@ interface MetaValue {
   sdrs: Rep[];
   /** Every active rep (lead owners can be any role). */
   activeReps: Rep[];
+  /** Businesses of the group, in order. */
+  businesses: Business[];
+  /** More than one active business: show business choices. */
+  multiBusiness: boolean;
+  bizName: (id: number | null | undefined) => string;
+  /** Lead categories, in order (archived ones included). */
+  categories: LeadCategory[];
+  category: (key: string | null | undefined) => LeadCategory | undefined;
+  /** A category's name in the current language (its key if unknown). */
+  catName: (key: string | null | undefined) => string;
+  /** Active categories a lead of this business can have (its own and the group-wide ones). */
+  categoriesFor: (businessId: number | null | undefined) => LeadCategory[];
 }
 
 const MetaContext = createContext<MetaValue | null>(null);
 
 export function MetaProvider({ children }: { children: ReactNode }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [meta, setMeta] = useState<MetaResponse | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const [nonce, setNonce] = useState(0);
@@ -41,6 +53,10 @@ export function MetaProvider({ children }: { children: ReactNode }) {
   const value = useMemo<MetaValue | null>(() => {
     if (!meta) return null;
     const byId = new Map(meta.reps.map((r) => [r.id, r.name]));
+    const businesses = meta.businesses ?? [];
+    const categories = meta.categories ?? [];
+    const bizById = new Map(businesses.map((b) => [b.id, b.name]));
+    const catByKey = new Map(categories.map((c) => [c.key, c]));
     return {
       meta,
       reload,
@@ -48,8 +64,19 @@ export function MetaProvider({ children }: { children: ReactNode }) {
       aes: meta.reps.filter((r) => r.role === 'AE' && r.active),
       sdrs: meta.reps.filter((r) => r.role === 'SDR' && r.active),
       activeReps: meta.reps.filter((r) => r.active),
+      businesses,
+      multiBusiness: businesses.filter((b) => b.active).length > 1,
+      bizName: (id) => (id ? (bizById.get(id) ?? '—') : '—'),
+      categories,
+      category: (key) => (key ? catByKey.get(key) : undefined),
+      catName: (key) => {
+        if (!key) return '—';
+        const c = catByKey.get(key);
+        return c ? (lang === 'en' && c.name_en ? c.name_en : c.name) : key;
+      },
+      categoriesFor: (businessId) => categories.filter((c) => c.active && (c.business_id == null || businessId == null || c.business_id === businessId)),
     };
-  }, [meta, reload]);
+  }, [meta, reload, lang]);
 
   if (error && !meta) {
     return (

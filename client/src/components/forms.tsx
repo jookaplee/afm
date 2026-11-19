@@ -5,7 +5,7 @@ import {
   CAMPAIGN_STATUSES,
   CHANNELS,
   DEAL_TYPES,
-  INDUSTRIES,
+  FALLBACK_CATEGORY,
   LOST_REASONS,
   PRODUCTS,
   REGIONS,
@@ -23,6 +23,7 @@ import { errorMessage } from '../lib/errors.ts';
 import { useConfirm, useMeta, useToast } from '../lib/app-context.tsx';
 import { useI18n } from '../lib/i18n.tsx';
 import { Field, Modal, Switch } from './ui.tsx';
+import { BusinessSelect, CategorySelect } from './categories.tsx';
 
 type Values = Record<string, string>;
 
@@ -457,18 +458,33 @@ export function LostReasonModal({ dealName, onCancel, onConfirm }: { dealName: s
 
 // ---------- Lead form ----------
 
-export function LeadFormModal({ lead, onClose, onSaved }: { lead?: LeadRow | null; onClose: () => void; onSaved: () => void }) {
+export function LeadFormModal({
+  lead,
+  defaults,
+  onClose,
+  onSaved,
+}: {
+  lead?: LeadRow | null;
+  /** For a new lead: the business and category being looked at. */
+  defaults?: { business?: number; industry?: string };
+  onClose: () => void;
+  onSaved: () => void;
+}) {
   const { t } = useI18n();
-  const { meta, activeReps } = useMeta();
+  const { meta, activeReps, businesses, multiBusiness, category, categoriesFor } = useMeta();
   const toast = useToast();
   const confirm = useConfirm();
   const editing = !!lead;
+  const firstBusiness = businesses.find((b) => b.active)?.id ?? businesses[0]?.id;
+  const startCategory = lead?.industry ?? defaults?.industry;
+  const startBusiness = lead?.business_id ?? defaults?.business ?? category(startCategory)?.business_id ?? firstBusiness;
   const f = useForm({
     name: lead?.name ?? '',
     email: lead?.email ?? '',
     title: lead?.title ?? '',
     company: lead?.company ?? '',
-    industry: lead?.industry ?? 'restoran_halal_western',
+    business_id: startBusiness ? String(startBusiness) : '',
+    industry: startCategory ?? categoriesFor(startBusiness)[0]?.key ?? FALLBACK_CATEGORY,
     segment: lead?.segment ?? 'midmarket',
     region: lead?.region ?? 'klang_valley',
     channel: lead?.channel ?? 'prospect_list',
@@ -489,6 +505,7 @@ export function LeadFormModal({ lead, onClose, onSaved }: { lead?: LeadRow | nul
         title: orNull(v.title),
         company: v.company,
         industry: v.industry,
+        business_id: toInt(v.business_id),
         segment: v.segment,
         region: v.region,
         channel: v.channel,
@@ -535,8 +552,31 @@ export function LeadFormModal({ lead, onClose, onSaved }: { lead?: LeadRow | nul
       <Field label={t('field.company')} error={f.errors.company} htmlFor="lead-company">
         <input id="lead-company" className="input" value={v.company} onChange={(e) => f.set('company', e.target.value)} maxLength={200} />
       </Field>
+      {multiBusiness && (
+        <Field label={t('cat.business')} error={f.errors.business_id} htmlFor="lead-business">
+          <BusinessSelect
+            id="lead-business"
+            value={v.business_id}
+            onChange={(x) => {
+              f.set('business_id', x);
+              // Keep the category only if this business uses it.
+              const ok = categoriesFor(Number(x)).some((c) => c.key === v.industry);
+              if (!ok) f.set('industry', categoriesFor(Number(x))[0]?.key ?? FALLBACK_CATEGORY);
+            }}
+          />
+        </Field>
+      )}
       <Field label={t('field.industry')} error={f.errors.industry} htmlFor="lead-industry">
-        <EnumSelect id="lead-industry" value={v.industry} onChange={(x) => f.set('industry', x)} options={INDUSTRIES} render={(x) => t(`industry.${x}`)} />
+        <CategorySelect
+          id="lead-industry"
+          value={v.industry}
+          businessId={multiBusiness ? Number(v.business_id) || null : null}
+          onChange={(x) => {
+            f.set('industry', x);
+            const b = category(x)?.business_id;
+            if (b) f.set('business_id', String(b));
+          }}
+        />
       </Field>
       <Field label={t('field.segment')} error={f.errors.segment} htmlFor="lead-segment">
         <EnumSelect id="lead-segment" value={v.segment} onChange={(x) => f.set('segment', x)} options={SEGMENTS} render={(x) => t(`segment.${x}`)} />
@@ -749,13 +789,13 @@ export function AccountFormModal({
   onDeleted?: () => void;
 }) {
   const { t } = useI18n();
-  const { aes } = useMeta();
+  const { aes, categories } = useMeta();
   const toast = useToast();
   const confirm = useConfirm();
   const editing = !!account;
   const f = useForm({
     name: account?.name ?? '',
-    industry: account?.industry ?? 'restoran_halal_western',
+    industry: account?.industry ?? categories.find((c) => c.active)?.key ?? FALLBACK_CATEGORY,
     segment: account?.segment ?? 'midmarket',
     region: account?.region ?? 'klang_valley',
     employees: account ? String(account.employees) : '',
@@ -813,7 +853,7 @@ export function AccountFormModal({
         <input id="ac-name" className="input" value={v.name} onChange={(e) => f.set('name', e.target.value)} maxLength={200} />
       </Field>
       <Field label={t('field.industry')} error={f.errors.industry} htmlFor="ac-industry">
-        <EnumSelect id="ac-industry" value={v.industry} onChange={(x) => f.set('industry', x)} options={INDUSTRIES} render={(x) => t(`industry.${x}`)} />
+        <CategorySelect id="ac-industry" value={v.industry} onChange={(x) => f.set('industry', x)} />
       </Field>
       <Field label={t('field.segment')} error={f.errors.segment} htmlFor="ac-segment">
         <EnumSelect id="ac-segment" value={v.segment} onChange={(x) => f.set('segment', x)} options={SEGMENTS} render={(x) => t(`segment.${x}`)} />

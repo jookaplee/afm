@@ -7,9 +7,16 @@ export type Segment = (typeof SEGMENTS)[number];
 export const REGIONS = ['klang_valley', 'northern', 'southern', 'east_coast', 'sabah', 'sarawak'] as const;
 export type Region = (typeof REGIONS)[number];
 
-// Customer categories (the CRM's "kategori"). Keys match the imported CRM data.
+// Lead / customer categories (the CRM's "kategori") are a table (lead_categories),
+// managed per business of the group. These are the starting categories; their keys
+// match the imported CRM data. "other" is the fallback and always exists.
 export const INDUSTRIES = ['restoran_halal_western', 'kafe_premium_steak_bbq', 'penjual_perap_online', 'other'] as const;
-export type Industry = (typeof INDUSTRIES)[number];
+export type DefaultIndustry = (typeof INDUSTRIES)[number];
+/** A lead category key (lead_categories.key). */
+export type Industry = string;
+export const FALLBACK_CATEGORY = 'other';
+/** Category colours are chart series 1-8 (7 is neutral grey). */
+export const CATEGORY_COLORS = [1, 2, 3, 4, 5, 6, 7, 8] as const;
 
 // Lead channels. Order is the categorical colour order in charts - never reorder.
 // The first six are marketing channels with campaigns; "prospect_list" is an

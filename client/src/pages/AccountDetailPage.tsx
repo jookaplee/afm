@@ -5,6 +5,8 @@ import type { ActivityType } from '../../../shared/constants.ts';
 import type { AccountDetail, AccountRow, AgentFindingRow, DealRow, LeadRow, Paged } from '../../../shared/types.ts';
 import { useApi } from '../lib/useApi.ts';
 import { useI18n } from '../lib/i18n.tsx';
+import { useMeta } from '../lib/app-context.tsx';
+import { CategoryTag } from '../components/categories.tsx';
 import { Card, ErrorState, LeadStatusBadge, Loading, PageHeader, StageBadge } from '../components/ui.tsx';
 import { StatTile } from '../components/charts.tsx';
 import { DataTable, type Column } from '../components/DataTable.tsx';
@@ -54,6 +56,7 @@ const ACTIVITY_ICON: Record<ActivityType, typeof Phone> = { call: Phone, email: 
 export default function AccountDetailPage() {
   const { id } = useParams();
   const { t, fmt } = useI18n();
+  const { catName } = useMeta();
   const navigate = useNavigate();
   const agent = useAgent();
   const { data, error, loading, reload } = useApi<AccountDetail>(`/accounts/${id}`, { v: agent.version });
@@ -108,7 +111,7 @@ export default function AccountDetailPage() {
       {back}
       <PageHeader
         title={a.name}
-        subtitle={`${t(`industry.${a.industry}`)} · ${t(`segment.${a.segment}`)} · ${t(`region.${a.region}`)}`}
+        subtitle={`${catName(a.industry)} · ${t(`segment.${a.segment}`)} · ${t(`region.${a.region}`)}`}
         actions={
           <>
             {waLead && (
@@ -169,7 +172,11 @@ export default function AccountDetailPage() {
                 </>
               )}
               <dt>{t('col.industry')}</dt>
-              <dd>{t(`industry.${a.industry}`)}</dd>
+              <dd>
+                <Link to={`/leads?industry=${encodeURIComponent(a.industry)}`}>
+                  <CategoryTag k={a.industry} />
+                </Link>
+              </dd>
               <dt>{t('col.segment')}</dt>
               <dd>{t(`segment.${a.segment}`)}</dd>
               {a.sales_estimate != null && (

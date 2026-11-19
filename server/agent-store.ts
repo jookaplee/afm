@@ -6,11 +6,12 @@
 import { tx, type Db } from './schema.ts';
 import { prospectInserter, type CrmRecord } from './import-crm.ts';
 import { HttpError, type Query } from './http.ts';
-import { REGIONS, type Industry, type Region } from '../shared/constants.ts';
+import { REGIONS, type Region } from '../shared/constants.ts';
+import { existingCategoryOr } from './categories-store.ts';
 import {
   AGENT_FIELDS,
-  DISCOVER_CATEGORIES,
   SOCIAL_FIELDS,
+  categoryBrief,
   cleanSources,
   cleanUrl,
   cleanValue,
@@ -58,13 +59,43 @@ function daysBefore(day: string, days: number): string {
 }
 
 const ACCOUNT_RECORD_SQL = `SELECT id, name, legal_name, industry, region, area, address, phone, contact_name, email,
-  website, socials, rating, verified_at FROM accounts`;
+  website, socials, rating, verified_at,
+  COALESCE((SELECT CASE WHEN COALESCE(c.description, '') = '' THEN c.name ELSE c.name || ': ' || c.description END
+            FROM lead_categories c WHERE c.key = accounts.industry), industry) AS category_brief
+  FROM accounts`;
 
-/** Discovery walks every category x region pair in turn. */
-function discoverTarget(db: Db): DiscoverTarget {
+interface DiscoverCategory {
+  key: string;
+  name: string;
+  description: string | null;
+  business_name: string | null;
+  business_description: string | null;
+}
+
+/**
+ * Discovery walks every category x region pair in turn, over the active
+ * categories the agent may search (ai_discover) of active businesses.
+ */
+function discoverTarget(db: Db): DiscoverTarget | null {
+  const cats = db
+    .prepare(
+      `SELECT c.key, c.name, c.description, b.name AS business_name, b.description AS business_description
+       FROM lead_categories c LEFT JOIN businesses b ON b.id = c.business_id
+       WHERE c.active = 1 AND c.ai_discover = 1 AND (c.business_id IS NULL OR b.active = 1)
+       ORDER BY c.sort, c.id`,
+    )
+    .all() as unknown as DiscoverCategory[];
+  if (!cats.length) return null;
   const done = (db.prepare(`SELECT COUNT(*) AS n FROM agent_runs WHERE kind IN ('discover', 'cycle')`).get() as { n: number }).n;
-  const pairs: [Industry, Region][] = REGIONS.flatMap((r) => DISCOVER_CATEGORIES.map((c) => [c, r] as [Industry, Region]));
-  const [category, region] = pairs[done % pairs.length];
+  const pairs: [DiscoverCategory, Region][] = REGIONS.flatMap((r) => cats.map((c) => [c, r] as [DiscoverCategory, Region]));
+  const [cat, region] = pairs[done % pairs.length];
+  const category = cat.key;
+  // A category for every business: describe the group's active businesses.
+  const business = cat.business_name
+    ? categoryBrief(cat.business_name, cat.business_description)
+    : (db.prepare('SELECT name, description FROM businesses WHERE active = 1 ORDER BY sort, id').all() as { name: string; description: string | null }[])
+        .map((b) => categoryBrief(b.name, b.description))
+        .join(' | ');
   const names = db
     .prepare('SELECT name FROM accounts WHERE industry = ? AND region = ? ORDER BY name LIMIT 200')
     .all(category, region) as { name: string }[];
@@ -80,7 +111,7 @@ function discoverTarget(db: Db): DiscoverTarget {
       /* ignore */
     }
   }
-  return { category, region, exclude: [...new Set(exclude)].slice(0, 250) };
+  return { category, label: cat.name, brief: categoryBrief(cat.name, cat.description), business, region, exclude: [...new Set(exclude)].slice(0, 250) };
 }
 
 /**
@@ -330,7 +361,7 @@ function acceptNewLead(db: Db, payload: string, today: string): number {
   const c = JSON.parse(payload) as Candidate;
   const record: CrmRecord = {
     name: c.name,
-    category: c.category,
+    category: existingCategoryOr(db, c.category),
     company: c.legal_name ?? undefined,
     region: [c.area, c.state].filter(Boolean).join(', ') || undefined,
     primaryRegion: c.state ?? c.area ?? undefined,

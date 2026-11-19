@@ -7,7 +7,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import {
   AGENT_FIELDS,
-  CATEGORY_BRIEF,
   CONFIDENCES,
   DISCOVER_SYSTEM,
   DISCOVER_TOOL,
@@ -253,7 +252,7 @@ export async function runAgentCycle(o: {
         o.client,
         settings.model,
         VERIFY_SYSTEM,
-        verifyPrompt(a, o.today, { category: CATEGORY_BRIEF[a.industry], region: REGION_BRIEF[a.region] }),
+        verifyPrompt(a, o.today, { region: REGION_BRIEF[a.region] }),
         VERIFY_TOOL,
         { searches: 6, fetches: 4 },
         tally,
@@ -270,7 +269,7 @@ export async function runAgentCycle(o: {
   }
 
   if (target && !fatal && !o.signal?.aborted) {
-    o.onProgress?.({ step: 'discover', label: CATEGORY_BRIEF[target.category], done, total });
+    o.onProgress?.({ step: 'discover', label: target.label, done, total });
     try {
       const { input } = await research(
         o.client,

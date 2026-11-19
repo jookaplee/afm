@@ -6,7 +6,8 @@
 // or JSON - either the lead array itself or {leads, categories}.
 
 import { clearAll, ensureWaTemplates, tx, type Db } from './schema.ts';
-import { INDUSTRIES, type AbmTier, type Industry, type Region, type Segment } from '../shared/constants.ts';
+import { FALLBACK_CATEGORY, type AbmTier, type Region, type Segment } from '../shared/constants.ts';
+import { categoryResolver, defaultBusinessId, ensureCategories, slugKey } from './categories.ts';
 
 export interface CrmRecord {
   id?: number;
@@ -113,18 +114,20 @@ export function regionOf(primary: string | undefined, full?: string): Region {
   return 'klang_valley';
 }
 
-export function categoryOf(category: string | undefined): Industry {
-  return (INDUSTRIES as readonly string[]).includes(category ?? '') ? (category as Industry) : 'other';
+/** The category key of a record ("other" when it has none). */
+export function categoryOf(category: string | undefined): string {
+  return category && category.trim() ? slugKey(category) : FALLBACK_CATEGORY;
 }
 
 const TIER_POINTS: Record<Segment, number> = { enterprise: 35, midmarket: 22, smb: 10 };
-const CATEGORY_FIT: Record<Industry, number> = { restoran_halal_western: 20, kafe_premium_steak_bbq: 20, penjual_perap_online: 16, other: 12 };
+/** Category fit points from the source CRM; categories it did not have score in between. */
+const CATEGORY_FIT: Record<string, number> = { restoran_halal_western: 20, kafe_premium_steak_bbq: 20, penjual_perap_online: 16, [FALLBACK_CATEGORY]: 12 };
 
 /** Lead score 0-100 using the source CRM's weights: size tier + rating + category fit. */
 export function scoreOf(r: CrmRecord): number {
   const tier = TIER_POINTS[tierOf(r.salesValue)];
   const rating = Math.max(0, Math.min(15, (((Number(r.ratingValue) || 0) - 3.5) / 1.5) * 15));
-  const fit = CATEGORY_FIT[categoryOf(r.category)];
+  const fit = CATEGORY_FIT[categoryOf(r.category)] ?? 16;
   return Math.max(0, Math.min(100, Math.round(tier + rating + fit)));
 }
 
@@ -164,7 +167,10 @@ export interface ProspectExtras {
  * Prepared insert of one prospect: the business as an account and its PIC as a
  * new lead. Shared by the import and by new leads accepted from the AI agent.
  */
-export function prospectInserter(db: Db, today: string): (r: CrmRecord, extras?: ProspectExtras) => number {
+export function prospectInserter(db: Db, today: string, labels: Record<string, string> = {}): (r: CrmRecord, extras?: ProspectExtras) => number {
+  const resolve = categoryResolver(db);
+  let biz: number | null = null;
+  const defaultBusiness = () => (biz ??= defaultBusinessId(db));
   const insAccount = db.prepare(
     `INSERT INTO accounts (name, industry, segment, region, employees, website, owner_id, tier, created_at,
        legal_name, contact_name, phone, sales_estimate, rating, area, socials, source, address, email)
@@ -172,12 +178,13 @@ export function prospectInserter(db: Db, today: string): (r: CrmRecord, extras?:
   );
   const insLead = db.prepare(
     `INSERT INTO leads (name, email, phone, title, company, industry, segment, region, channel, campaign_id, status,
-       score, owner_id, account_id, deal_id, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'prospect_list', NULL, 'new', ?, NULL, ?, NULL, ?)`,
+       score, owner_id, account_id, deal_id, created_at, business_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'prospect_list', NULL, 'new', ?, NULL, ?, NULL, ?, ?)`,
   );
   return (r, extras = {}) => {
     const name = clean(r.name)!;
-    const industry = categoryOf(r.category);
+    const category = resolve(r.category, labels[categoryOf(r.category)] ?? r.categoryLabel);
+    const industry = category.key;
     const segment = tierOf(r.salesValue);
     const region = regionOf(r.primaryRegion, r.region);
     const socials: Record<string, string> = {};
@@ -208,7 +215,20 @@ export function prospectInserter(db: Db, today: string): (r: CrmRecord, extras?:
       email,
     );
     const accountId = Number(res.lastInsertRowid);
-    insLead.run(clean(r.owner, 120) ?? name, email, clean(r.phone, 40), 'Pemilik / PIC', name, industry, segment, region, scoreOf(r), accountId, today);
+    insLead.run(
+      clean(r.owner, 120) ?? name,
+      email,
+      clean(r.phone, 40),
+      'Pemilik / PIC',
+      name,
+      industry,
+      segment,
+      region,
+      scoreOf(r),
+      accountId,
+      today,
+      category.business_id ?? defaultBusiness(),
+    );
     return accountId;
   };
 }
@@ -240,8 +260,11 @@ export function importCrm(db: Db, dataset: CrmDataset, opts: { today: string }):
     clearAll(db);
     const insRep = db.prepare('INSERT INTO reps (name, email, role, team, active) VALUES (?, ?, ?, ?, 1)');
     for (const [name, team] of DEFAULT_TEAM) insRep.run(name, '', 'AE', team);
-    const insert = prospectInserter(db, opts.today);
+    const labels: Record<string, string> = {};
+    for (const [k, v] of Object.entries(dataset.categories ?? {})) if (v?.label) labels[categoryOf(k)] = String(v.label);
+    const insert = prospectInserter(db, opts.today, labels);
     for (const r of rows) insert(r);
+    ensureCategories(db, labels);
     const meta = db.prepare('INSERT INTO meta (key, value) VALUES (?, ?)');
     meta.run('seeded_at', new Date().toISOString());
     meta.run('anchor_date', opts.today);

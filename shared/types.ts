@@ -127,6 +127,8 @@ export interface Lead {
   wa_status?: WaStatus | null;
   /** When the lead replied on WhatsApp (marked by the user). */
   wa_replied_at?: string | null;
+  /** The business of the group this lead is for (see businesses). */
+  business_id: number | null;
 }
 
 export type WaStatus = 'yes' | 'no';
@@ -329,9 +331,61 @@ export interface Paged<T> {
   pageSize: number;
 }
 
+// ---------- Businesses of the group & lead categories ----------
+
+/** A business (company / unit) of the JOOSONS group network. */
+export interface Business {
+  id: number;
+  name: string;
+  /** What it sells and to whom; given to the AI agents as context. */
+  description: string | null;
+  active: number;
+  sort: number;
+}
+
+export interface BusinessRow extends Business {
+  leads: number;
+  active_leads: number;
+  categories: number;
+}
+
+/** A lead / customer category. `key` is what leads and accounts store. */
+export interface LeadCategory {
+  id: number;
+  key: string;
+  name: string;
+  name_en: string | null;
+  /** null = used by every business of the group. */
+  business_id: number | null;
+  /** Who belongs in this category; the AI agent searches with it. */
+  description: string | null;
+  /** Chart series colour 1-8. */
+  color: number;
+  /** Whether the AI agent looks for new leads in this category. */
+  ai_discover: number;
+  active: number;
+  sort: number;
+}
+
+export interface LeadCategoryRow extends LeadCategory {
+  leads: number;
+  active_leads: number;
+  accounts: number;
+  customers: number;
+}
+
+/** Lead counts for the filters of the Leads page. */
+export interface LeadFacets {
+  categories: { key: string; n: number }[];
+  businesses: { id: number; n: number }[];
+  total: number;
+}
+
 export interface MetaResponse {
   today: string;
   appName: string;
+  businesses: Business[];
+  categories: LeadCategory[];
   reps: Rep[];
   campaigns: Pick<Campaign, 'id' | 'name' | 'channel' | 'status'>[];
   dataRange: { min: string; max: string };
@@ -405,6 +459,7 @@ export interface WaContact {
   region: Region;
   segment: Segment;
   industry: Industry;
+  business_id: number | null;
   status: LeadStatus;
   score: number;
   owner_name: string | null;

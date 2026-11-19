@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Download, Plus } from 'lucide-react';
-import { ABM_TIERS, INDUSTRIES, REGIONS, SEGMENTS, type AbmTier, type Industry, type Region, type Segment } from '../../../shared/constants.ts';
+import { ABM_TIERS, REGIONS, SEGMENTS, type AbmTier, type Industry, type Region, type Segment } from '../../../shared/constants.ts';
 import type { AccountRow, Paged } from '../../../shared/types.ts';
 import { api } from '../lib/api.ts';
 import { useApi } from '../lib/useApi.ts';
 import { useDebounced } from '../lib/useDebounced.ts';
 import { useI18n } from '../lib/i18n.tsx';
-import { useToast } from '../lib/app-context.tsx';
+import { useMeta, useToast } from '../lib/app-context.tsx';
+import { CategorySelect } from '../components/categories.tsx';
 import { downloadCsv } from '../lib/csv.ts';
 import { CAN_DOWNLOAD } from '../lib/env.ts';
 import { ErrorState, PageHeader, Pager, SearchInput, SelectFilter, Switch } from '../components/ui.tsx';
@@ -27,6 +28,7 @@ const PAGE_SIZE = 25;
 
 export default function AccountsPage() {
   const { t, fmt } = useI18n();
+  const { catName } = useMeta();
   const toast = useToast();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
@@ -58,7 +60,7 @@ export default function AccountsPage() {
             {a.name}
             <VerifyMark status={a.verify_status} />
           </div>
-          <div className="cell-sub">{t(`industry.${a.industry}`)}</div>
+          <div className="cell-sub">{catName(a.industry)}</div>
         </div>
       ),
     },
@@ -127,7 +129,7 @@ export default function AccountsPage() {
           a.id,
           a.name,
           a.legal_name,
-          t(`industry.${a.industry}`),
+          catName(a.industry),
           t(`segment.${a.segment}`),
           t(`region.${a.region}`),
           a.area,
@@ -175,7 +177,7 @@ export default function AccountsPage() {
       <div className="filter-bar">
         <SelectFilter label={t('col.segment')} value={segment} onChange={setSegment} options={SEGMENTS} allLabel={t('filter.allSegments')} render={(v) => t(`segment.${v}`)} />
         <SelectFilter label={t('col.region')} value={region} onChange={setRegion} options={REGIONS} allLabel={t('filter.allRegions')} render={(v) => t(`region.${v}`)} />
-        <SelectFilter label={t('col.industry')} value={industry} onChange={setIndustry} options={INDUSTRIES} allLabel={t('filter.allIndustries')} render={(v) => t(`industry.${v}`)} />
+        <CategorySelect label={t('col.industry')} value={industry ?? ''} onChange={(k) => setIndustry(k || undefined)} allLabel={t('filter.allIndustries')} />
         <SelectFilter label={t('col.tier')} value={tier} onChange={setTier} options={ABM_TIERS} allLabel={t('filter.allTiers')} render={(v) => t(`tier.${v}`)} />
       </div>
       {s && (
@@ -202,7 +204,7 @@ export default function AccountsPage() {
                   { label: t('col.revenue'), align: 'right' },
                   { label: t('col.openPipeline'), align: 'right' },
                 ],
-                rows: s.byIndustry.map((r) => [t(`industry.${r.key}`), fmt.num(r.accounts), fmt.num(r.customers), fmt.money(r.revenue), fmt.money(r.pipeline)]),
+                rows: s.byIndustry.map((r) => [catName(r.key), fmt.num(r.accounts), fmt.num(r.customers), fmt.money(r.revenue), fmt.money(r.pipeline)]),
               }}
             >
               <BarList
@@ -210,7 +212,7 @@ export default function AccountsPage() {
                   .sort((a, b) => (byCount ? b.accounts - a.accounts : b.revenue - a.revenue))
                   .map((r) => ({
                     key: r.key,
-                    label: t(`industry.${r.key}`),
+                    label: catName(r.key),
                     value: byCount ? r.accounts : r.revenue,
                     display: byCount ? fmt.num(r.accounts) : fmt.moneyCompact(r.revenue),
                   }))}

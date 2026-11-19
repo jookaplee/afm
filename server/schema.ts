@@ -2,6 +2,7 @@
 // small synchronous API below: node:sqlite on the server, sql.js in the browser.
 
 import { DEFAULT_WA_TEMPLATES } from '../shared/whatsapp.ts';
+import { ensureCategories } from './categories.ts';
 
 export type SqlValue = string | number | null;
 
@@ -245,6 +246,28 @@ CREATE TABLE IF NOT EXISTS order_items (
   qty        REAL NOT NULL,
   price_sen  INTEGER NOT NULL
 );
+
+-- Businesses of the group, and the lead categories each one uses.
+CREATE TABLE IF NOT EXISTS businesses (
+  id          INTEGER PRIMARY KEY,
+  name        TEXT NOT NULL,
+  description TEXT,
+  active      INTEGER NOT NULL DEFAULT 1,
+  sort        INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS lead_categories (
+  id          INTEGER PRIMARY KEY,
+  key         TEXT NOT NULL UNIQUE,
+  name        TEXT NOT NULL,
+  name_en     TEXT,
+  business_id INTEGER REFERENCES businesses(id) ON DELETE SET NULL,
+  description TEXT,
+  color       INTEGER NOT NULL DEFAULT 1,
+  ai_discover INTEGER NOT NULL DEFAULT 1,
+  active      INTEGER NOT NULL DEFAULT 1,
+  sort        INTEGER NOT NULL DEFAULT 0
+);
 `;
 
 /** Columns added after the first release; older databases get them on open. */
@@ -276,6 +299,8 @@ const ADDED_COLUMNS: [table: string, column: string, type: string][] = [
   ['leads', 'wa_needs_human', 'INTEGER NOT NULL DEFAULT 0'],
   ['leads', 'wa_human_reason', 'TEXT'],
   ['leads', 'wa_agent_off', 'INTEGER NOT NULL DEFAULT 0'],
+  // Which business of the group a lead is for
+  ['leads', 'business_id', 'INTEGER'],
 ];
 
 export function initSchema(db: Db): void {
@@ -285,7 +310,10 @@ export function initSchema(db: Db): void {
     const cols = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
     if (!cols.some((c) => c.name === column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
   }
-  if (!isEmpty(db)) ensureWaTemplates(db, new Date().toISOString().slice(0, 10));
+  if (!isEmpty(db)) {
+    ensureWaTemplates(db, new Date().toISOString().slice(0, 10));
+    ensureCategories(db);
+  }
 }
 
 /** Adds the starting WhatsApp templates once (also after a reset or import). */
@@ -309,6 +337,7 @@ export function clearAll(db: Db): void {
     DELETE FROM agent_findings; DELETE FROM agent_runs;
     DELETE FROM activities; DELETE FROM deals; DELETE FROM leads; DELETE FROM campaigns;
     DELETE FROM accounts; DELETE FROM quotas; DELETE FROM reps; DELETE FROM meta;
+    DELETE FROM lead_categories; DELETE FROM businesses;
   `);
 }
 

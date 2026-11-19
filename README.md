@@ -29,13 +29,35 @@ warna yang telah disahkan selamat untuk buta warna (mod cerah & gelap).
 |---|---|
 | **Pipeline** | Papan kanban — seret kad untuk memindahkan peringkat (urus niaga kalah memerlukan sebab) |
 | **Urus niaga** | Jadual dengan tab terbuka/menang/kalah, carian, penapis, isihan, penomboran halaman, tambah/sunting/padam, eksport CSV |
-| **Lead** | Kelayakan (Lead baharu → Dihubungi → Berkelayakan), **tambah ke pipeline** (akaun dicipta secara automatik), tandakan tidak layak, telefon & pautan WhatsApp, eksport CSV |
+| **Lead** | Pilih **perniagaan** dalam kumpulan, tapis mengikut **kategori** (cip dengan bilangan lead), kelayakan (Lead baharu → Dihubungi → Berkelayakan), **tambah ke pipeline** (akaun dicipta secara automatik), tandakan tidak layak, telefon & pautan WhatsApp, eksport CSV |
+| **Kategori lead** | Perniagaan dalam rangkaian JOOSONS dan kategori pelanggan setiap perniagaan: tambah, sunting, warna, arkib, pindah, padam (lihat di bawah) |
 | **Kempen** | Bajet, perbelanjaan sebenar, lead, MQL/SQL, pipeline, hasil dan ROI setiap kempen |
 | **Akaun** | Pangkalan akaun (saiz Tier A/B/C, kategori, kawasan, PIC, telefon/WhatsApp, anggaran jualan, penilaian, keutamaan), butiran akaun dengan profil, laman web & media sosial, urus niaga, lead dan sejarah aktiviti |
 | **Pasukan** | Jurujual, peranan, fokus saiz akaun dan **kuota bulanan** (menjadi sasaran papan pemuka); tambah/nyahaktif ahli |
 | **WhatsApp** | Semua nombor telefon lead (mudah alih / talian tetap / tidak sah / dikongsi), templat mesej, penghantar mesej, mod kempen satu demi satu, tanda "dibalas" dan log mesej (lihat di bawah) |
 | **Pesanan** | Pesanan pelanggan (daripada ejen WhatsApp atau dimasukkan sendiri) mengikut status, butiran, sahkan/sediakan/hantar/batal, dan **katalog produk** dengan harga (lihat di bawah) |
 | **Ejen AI** | Ejen yang sentiasa menyemak data lead (telefon, PIC, alamat, e-mel, laman web, media sosial, masih beroperasi atau tidak) dan mencari lead baharu; setiap cadangan bersumber menunggu keputusan anda (lihat di bawah) |
+
+### Kategori lead & perniagaan kumpulan
+
+Lead disusun mengikut **perniagaan** dalam rangkaian JOOSONS dan **kategori** pelanggan setiap
+perniagaan (halaman **Lead → Kategori**).
+
+- **Perniagaan**: nama, penerangan (apa yang dijual dan kepada siapa) dan aktif/tidak aktif. Apabila
+  ada lebih daripada satu perniagaan aktif, halaman Lead memaparkan pilihan perniagaan, dan borang lead
+  meminta perniagaan. Perniagaan yang mempunyai lead hanya boleh dijadikan tidak aktif, bukan dipadam.
+- **Kategori**: nama (BM, dan English jika mahu), perniagaan (atau *Semua perniagaan* untuk kategori
+  bersama), warna, penerangan "siapa lead dalam kategori ini", dan sama ada **Ejen AI mencari lead
+  baharu** dalam kategori itu. Kategori yang diarkib tidak ditawarkan untuk lead baharu; lead sedia ada
+  kekal. Kategori yang dipadam memindahkan lead dan akaunnya ke kategori lain. *Lain-lain* ialah kategori
+  simpanan dan tidak boleh dipadam.
+- Lead dalam kategori milik sesebuah perniagaan sentiasa berada dalam perniagaan itu (memindahkan
+  kategori ke perniagaan lain turut memindahkan lead). Lead dalam kategori bersama kekal pada perniagaan
+  yang dipilih untuknya.
+- **Ejen AI** bergilir-gilir mencari lead baharu bagi setiap kategori yang dihidupkan × setiap kawasan,
+  menggunakan penerangan kategori dan penerangan perniagaannya (cth. "halal sahaja").
+- Senarai prospek yang diimport mencipta kategorinya sendiri (dengan label daripada fail); perniagaan
+  pertama dicipta secara automatik dan boleh dinamakan semula.
 
 ### WhatsApp — hubungi lead terus
 
@@ -346,6 +368,8 @@ server/   Express 5 + node:sqlite
   agent-runner.ts autopilot Ejen AI di pelayan (ANTHROPIC_API_KEY)
   analytics.ts  enjin KPI (ringkasan, jualan, pemasaran)
   crud.ts       urus niaga, lead (+penukaran), kempen, akaun
+  categories.ts       perniagaan & kategori: data permulaan, migrasi pangkalan data lama
+  categories-store.ts perniagaan & kategori lead: API dan peraturan lead/akaun
   schema.ts     skema + jenis Db mudah alih (node:sqlite / sql.js)
   routes.ts     penghala API bebas pengangkutan (Express & pelayar)
   app.ts        pembalut Express + penyajian binaan produksi
@@ -367,7 +391,10 @@ client/   React 19 + Vite + Recharts
 |---|---|
 | `GET /api/analytics/overview` · `/sales` · `/marketing` | Parameter: `from`, `to`, `segment`, `region`, `owner` |
 | `GET/POST /api/deals`, `PATCH/DELETE /api/deals/:id` | Penapis: `stage` (`open`/`closed`/peringkat), `search`, `owner`, `segment`, `region`, `source`, `product`, `sort`, `dir`, `page`, `pageSize` |
-| `GET/POST /api/leads`, `PATCH/DELETE /api/leads/:id`, `POST /api/leads/:id/convert` | Penapis: `status` (`active`/status), `channel`, `segment`, `owner`, `campaign` |
+| `GET/POST /api/leads`, `PATCH/DELETE /api/leads/:id`, `POST /api/leads/:id/convert` | Penapis: `status` (`active`/status), `channel`, `segment`, `owner`, `campaign`, `business`, `industry` (kunci kategori) |
+| `GET /api/leads/facets` | Bilangan lead mengikut kategori dan perniagaan (untuk penapis) |
+| `GET/POST /api/businesses`, `PATCH/DELETE /api/businesses/:id` | Perniagaan dalam kumpulan |
+| `GET/POST /api/lead-categories`, `PATCH /api/lead-categories/:id`, `DELETE /api/lead-categories/:id?move_to=kunci` | Kategori lead (padam memindahkan lead dan akaun ke `move_to`) |
 | `GET/POST /api/campaigns`, `PATCH/DELETE /api/campaigns/:id` | Termasuk agregat lead/MQL/SQL/pipeline/hasil |
 | `GET/POST /api/accounts`, `GET /api/accounts/summary`, `GET/PATCH/DELETE /api/accounts/:id` | Butiran akaun termasuk urus niaga, lead dan aktiviti |
 | `GET/POST /api/reps`, `PATCH /api/reps/:id` | Pasukan jualan & kuota bulanan (`monthly_quota`) |

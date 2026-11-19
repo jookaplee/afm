@@ -6,7 +6,7 @@ import { AGENT_MODELS } from '../../../shared/agent.ts';
 import { api } from '../lib/api.ts';
 import { useApi } from '../lib/useApi.ts';
 import { useI18n } from '../lib/i18n.tsx';
-import { useToast } from '../lib/app-context.tsx';
+import { useMeta, useToast } from '../lib/app-context.tsx';
 import { errorMessage } from '../lib/errors.ts';
 import { Card, ErrorState, Loading, PageHeader, Pager, Tabs } from '../components/ui.tsx';
 import { StatTile } from '../components/charts.tsx';
@@ -181,6 +181,7 @@ function KeySetup() {
 
 function FindingCard({ f, onDecide }: { f: AgentFindingRow; onDecide: (f: AgentFindingRow, status: 'accepted' | 'rejected') => void }) {
   const { t, fmt } = useI18n();
+  const { catName } = useMeta();
   const pending = f.status === 'pending';
   const conf = <span className={`badge conf-${f.confidence}`}>{t(`agent.conf.${f.confidence}`)}</span>;
   const status = !pending && (
@@ -223,7 +224,7 @@ function FindingCard({ f, onDecide }: { f: AgentFindingRow; onDecide: (f: AgentF
     body = (
       <div className="finding-body">
         <p className="muted">
-          {t('agent.newLeadTitle')} · {t(`industry.${c.category}`)}
+          {t('agent.newLeadTitle')} · {catName(c.category)}
           {c.area || c.state ? ` · ${[c.area, c.state].filter(Boolean).join(', ')}` : ''}
           {c.rating ? ` · ★ ${fmt.dec(c.rating)}` : ''}
         </p>

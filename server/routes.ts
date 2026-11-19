@@ -8,6 +8,7 @@ import * as crud from './crud.ts';
 import * as agent from './agent-store.ts';
 import * as wa from './whatsapp-store.ts';
 import * as orders from './orders-store.ts';
+import * as cats from './categories-store.ts';
 import { seed } from './seed.ts';
 import type { MetaResponse } from '../shared/types.ts';
 
@@ -69,6 +70,8 @@ export function createRouter(opts: RouterOptions) {
     const body: MetaResponse = {
       today: today(),
       appName: opts.appName ?? 'JOOSONS',
+      businesses: db.prepare('SELECT * FROM businesses ORDER BY sort, id').all() as unknown as MetaResponse['businesses'],
+      categories: cats.categoryList(db),
       reps: db.prepare('SELECT * FROM reps ORDER BY role, name').all() as unknown as MetaResponse['reps'],
       campaigns: db.prepare('SELECT id, name, channel, status FROM campaigns ORDER BY start_date DESC').all() as unknown as MetaResponse['campaigns'],
       dataRange: { min: range.min ?? today(), max: range.max ?? today() },
@@ -93,6 +96,7 @@ export function createRouter(opts: RouterOptions) {
 
   // Leads
   on('GET', '/leads', ({ query }) => crud.listLeads(db, query));
+  on('GET', '/leads/facets', ({ query }) => crud.leadFacets(db, query));
   on('GET', '/leads/:id', ({ params }) => crud.getLead(db, id(params)));
   on('POST', '/leads', ({ body }) => created(crud.createLead(db, body, today())));
   on('PATCH', '/leads/:id', ({ params, body }) => crud.updateLead(db, id(params), body, today()));
@@ -101,6 +105,19 @@ export function createRouter(opts: RouterOptions) {
     crud.deleteLead(db, id(params));
     return noContent;
   });
+
+  // Businesses of the group & lead categories
+  on('GET', '/businesses', () => cats.listBusinesses(db));
+  on('POST', '/businesses', ({ body }) => created(cats.createBusiness(db, body)));
+  on('PATCH', '/businesses/:id', ({ params, body }) => cats.updateBusiness(db, id(params), body));
+  on('DELETE', '/businesses/:id', ({ params }) => {
+    cats.deleteBusiness(db, id(params));
+    return noContent;
+  });
+  on('GET', '/lead-categories', () => cats.listCategories(db));
+  on('POST', '/lead-categories', ({ body }) => created(cats.createCategory(db, body)));
+  on('PATCH', '/lead-categories/:id', ({ params, body }) => cats.updateCategory(db, id(params), body));
+  on('DELETE', '/lead-categories/:id', ({ params, query }) => cats.deleteCategory(db, id(params), query));
 
   // Campaigns
   on('GET', '/campaigns', ({ query }) => crud.listCampaigns(db, query));
@@ -216,7 +233,7 @@ export function createRouter(opts: RouterOptions) {
       throw new HttpError(methodMismatch ? 405 : 404, methodMismatch ? 'Method not allowed' : 'Not found');
     } catch (err) {
       if (err instanceof HttpError) {
-        return { status: err.status, body: { error: err.message, ...(err.details ? { details: err.details } : {}) } };
+        return { status: err.status, body: { error: err.message, ...(err.code ? { code: err.code } : {}), ...(err.details ? { details: err.details } : {}) } };
       }
       console.error(err);
       return { status: 500, body: { error: 'Internal server error' } };

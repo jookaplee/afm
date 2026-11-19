@@ -13,6 +13,8 @@ import { WaAgentModal, WaSettingsModal } from '../whatsapp/WaForms.tsx';
 import { useAgentTyping } from '../whatsapp/agent.ts';
 import { LogModal, TemplatesModal } from '../whatsapp/WaManage.tsx';
 import { Avatar, Ticks, chatTime } from '../whatsapp/ui.tsx';
+import { useMeta } from '../lib/app-context.tsx';
+import { BusinessSelect, CategorySelect } from '../components/categories.tsx';
 
 type Stage = 'all' | 'unread' | 'human' | 'todo' | 'sent' | 'replied';
 type PhoneFilter = 'mobile' | 'landline' | 'invalid' | 'chat';
@@ -138,6 +140,9 @@ export default function WhatsAppPage() {
   const [type, setType] = useState<PhoneFilter | ''>('mobile');
   const [region, setRegion] = useState<Region | ''>('');
   const [segment, setSegment] = useState<Segment | ''>('');
+  const [industry, setIndustry] = useState('');
+  const [business, setBusiness] = useState('');
+  const { multiBusiness } = useMeta();
   const [showFilters, setShowFilters] = useState(false);
   const [search, setSearch] = useState('');
   const [limit, setLimit] = useState(STEP);
@@ -152,8 +157,16 @@ export default function WhatsAppPage() {
   const bump = () => setVersion((v) => v + 1);
 
   const filters = useMemo(
-    () => ({ stage, type: type || undefined, region: region || undefined, segment: segment || undefined, search: q }),
-    [stage, type, region, segment, q],
+    () => ({
+      stage,
+      type: type || undefined,
+      region: region || undefined,
+      segment: segment || undefined,
+      industry: industry || undefined,
+      business: business || undefined,
+      search: q,
+    }),
+    [stage, type, region, segment, industry, business, q],
   );
   useEffect(() => setLimit(STEP), [filters]);
   const list = useApi<Paged<WaContact>>('/wa/contacts', { ...filters, page: 1, pageSize: limit, v: version });
@@ -259,6 +272,18 @@ export default function WhatsAppPage() {
                   </option>
                 ))}
               </select>
+              {multiBusiness && (
+                <BusinessSelect
+                  label={t('cat.business')}
+                  value={business}
+                  onChange={(b) => {
+                    setBusiness(b);
+                    setIndustry('');
+                  }}
+                  allLabel={t('cat.allBusinesses')}
+                />
+              )}
+              <CategorySelect label={t('col.industry')} value={industry} onChange={setIndustry} businessId={business ? Number(business) : undefined} allLabel={t('filter.allIndustries')} />
             </div>
           )}
           {s && (

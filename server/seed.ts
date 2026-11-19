@@ -3,6 +3,7 @@
 // live-looking picture: ~2 years of history, open pipeline, active campaigns.
 
 import { clearAll, ensureWaTemplates, tx, type Db } from './schema.ts';
+import { ensureCategories } from './categories.ts';
 import * as D from '../shared/dates.ts';
 import {
   INDUSTRIES,
@@ -11,7 +12,7 @@ import {
   PRODUCTS,
   type ActivityType,
   type Channel,
-  type Industry,
+  type DefaultIndustry,
   type LostReason,
   type Product,
   type Region,
@@ -111,14 +112,14 @@ const NAME_A = [
   'Summit', 'Apex', 'Vista', 'Titan', 'Synergy', 'Meridian', 'Borneo', 'Nusantara', 'Kinabalu', 'Langkawi',
 ];
 
-const NAME_B: Record<Industry, string[]> = {
+const NAME_B: Record<DefaultIndustry, string[]> = {
   restoran_halal_western: ['Steakhouse', 'Grill', 'Western Kitchen', 'Bistro', 'Diner', 'Charcoal House'],
   kafe_premium_steak_bbq: ['Cafe', 'BBQ House', 'Smokehouse', 'Coffee & Grill', 'Roastery', 'Butcher Cafe'],
   penjual_perap_online: ['Marinade', 'Frozen Mart', 'Perap Store', 'Meat Shop', 'Food Supply', 'Kitchen Co'],
   other: ['Catering', 'Hotel', 'Food Services', 'Trading', 'Ventures', 'Holdings'],
 };
 
-const INDUSTRY_LABEL_MS: Record<Industry, string> = {
+const INDUSTRY_LABEL_MS: Record<DefaultIndustry, string> = {
   restoran_halal_western: 'Restoran Halal Western',
   kafe_premium_steak_bbq: 'Kafe Steak & BBQ',
   penjual_perap_online: 'Penjual Perap Online',
@@ -164,7 +165,7 @@ const REGION_W: [Region, number][] = [
   ['sabah', 0.09],
   ['sarawak', 0.09],
 ];
-const INDUSTRY_W: [Industry, number][] = [
+const INDUSTRY_W: [DefaultIndustry, number][] = [
   ['restoran_halal_western', 0.36],
   ['kafe_premium_steak_bbq', 0.3],
   ['penjual_perap_online', 0.24],
@@ -298,7 +299,7 @@ export function seed(db: Db, opts: SeedOptions): SeedSummary {
   // Accounts
   const accounts: Account[] = [];
   const usedNames = new Set<string>();
-  const companyName = (industry: Industry, enterprise: boolean): string => {
+  const companyName = (industry: DefaultIndustry, enterprise: boolean): string => {
     for (let attempt = 0; attempt < 50; attempt++) {
       const a = rng.pick(NAME_A);
       const b = rng.pick(NAME_B[industry]);
@@ -501,7 +502,7 @@ export function seed(db: Db, opts: SeedOptions): SeedSummary {
       const segment = rng.weighted(cfg.seg);
       const owner = sdrs[sdrTurn++ % sdrs.length];
       const existing = rng.chance(0.15) ? pickAccount(segment) : undefined;
-      const industry = existing?.industry ?? rng.weighted(INDUSTRY_W);
+      const industry = (existing?.industry as DefaultIndustry | undefined) ?? rng.weighted(INDUSTRY_W);
       const person = personName(rng);
 
       let mql: string | null = null;
@@ -538,6 +539,7 @@ export function seed(db: Db, opts: SeedOptions): SeedSummary {
                 : rng.int(5, 40);
 
       const lead: Lead = {
+        business_id: null,
         id: leads.length + 1,
         name: person.name,
         email: '',
@@ -726,6 +728,7 @@ export function seed(db: Db, opts: SeedOptions): SeedSummary {
     meta.run('seeded_at', new Date().toISOString());
     meta.run('anchor_date', today);
     ensureWaTemplates(db, today);
+    ensureCategories(db);
   });
 
   return {

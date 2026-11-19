@@ -3629,3 +3629,218 @@ table.data .wa-preview {
     display: none;
   }
 }
+
+/* ==========================================================================
+   Lead categories & businesses of the group
+   ========================================================================== */
+.cat-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 100%;
+  min-width: 0;
+}
+.cat-dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--cat, var(--series-7));
+}
+.cat-chips {
+  display: flex;
+  gap: 8px;
+  padding: 14px 16px 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.cat-chips::-webkit-scrollbar {
+  display: none;
+}
+.cat-chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--fill);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s var(--ease);
+}
+.cat-chip:hover {
+  background: var(--fill-strong);
+}
+.cat-chip .count {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.cat-chip.empty {
+  color: var(--text-secondary);
+}
+.cat-chip[aria-pressed='true'] {
+  background: var(--text-primary);
+  color: var(--surface-1);
+  font-weight: 600;
+}
+.cat-chip[aria-pressed='true'] .count {
+  color: inherit;
+  opacity: 0.7;
+}
+.biz-switch {
+  width: fit-content;
+  max-width: 100%;
+}
+@media (min-width: 900px) {
+  /* The category tables of every business line up. */
+  .biz-card table.data {
+    table-layout: fixed;
+    width: 100%;
+  }
+  .biz-card table.data th:not(:first-child) {
+    width: 120px;
+  }
+}
+.biz-card {
+  padding: 0;
+  overflow: hidden;
+}
+.biz-head {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 18px 18px 14px;
+}
+.biz-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: var(--accent);
+  color: #fff;
+}
+.biz-icon.group {
+  background: var(--series-7);
+}
+.biz-icon svg {
+  width: 21px;
+  height: 21px;
+}
+.biz-title {
+  flex: 1;
+  min-width: 0;
+}
+.biz-title h2 {
+  margin: 0;
+  font-size: 17px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.biz-title p {
+  margin: 4px 0 0;
+}
+.biz-stats {
+  color: var(--text-secondary);
+}
+.biz-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+.biz-empty {
+  margin: 0;
+  padding: 0 18px 18px;
+}
+.cat-cell {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  min-width: 0;
+  max-width: 460px;
+}
+.cat-cell .cat-dot {
+  margin-top: 6px;
+}
+.cat-cell .cell-main {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  white-space: normal;
+}
+.clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: normal;
+}
+.how-card {
+  padding: 18px 20px;
+}
+.how-card h2 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+.how-card ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text-secondary);
+  display: grid;
+  gap: 6px;
+  font-size: 13.5px;
+}
+.field-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  padding-left: 2px;
+}
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.swatch {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  background: var(--cat);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+.swatch[aria-checked='true'] {
+  box-shadow: 0 0 0 2px var(--surface-1), 0 0 0 4px var(--cat);
+}
+.swatch:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+.danger-text {
+  color: var(--critical-text) !important;
+}
+@media (max-width: 640px) {
+  .biz-head {
+    flex-wrap: wrap;
+  }
+  .biz-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+.cat-tag .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

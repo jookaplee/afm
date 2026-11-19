@@ -27,7 +27,7 @@ import { fillTemplate, missingPlaceholders, waUrl, type WaSettings } from '../..
 import { api } from '../lib/api.ts';
 import { useApi } from '../lib/useApi.ts';
 import { useI18n } from '../lib/i18n.tsx';
-import { useToast } from '../lib/app-context.tsx';
+import { useMeta, useToast } from '../lib/app-context.tsx';
 import { errorMessage } from '../lib/errors.ts';
 import { telLink } from '../lib/contact.ts';
 import { getApiKey } from '../agent/engine.ts';
@@ -115,6 +115,7 @@ export function Conversation({
   onManageTemplates: () => void;
 }) {
   const { t, fmt } = useI18n();
+  const { catName } = useMeta();
   const toast = useToast();
   const navigate = useNavigate();
   const settings: WaSettings = summary.settings;
@@ -262,7 +263,7 @@ export function Conversation({
     setDrafting(true);
     try {
       const tpl = templates.find((x) => x.id === templateId);
-      setText(await aiDraft({ target: contact, settings, template: tpl ? fill(tpl) : body || null, t }));
+      setText(await aiDraft({ target: contact, settings, template: tpl ? fill(tpl) : body || null, t, catName }));
     } catch (e) {
       toast(e instanceof Error && e.message === 'no_key' ? t('wa.aiNeedKey') : errorMessage(e, t), 'bad');
     } finally {

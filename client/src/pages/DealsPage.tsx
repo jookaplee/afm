@@ -19,7 +19,7 @@ const PAGE_SIZE = 25;
 
 export default function DealsPage() {
   const { t, fmt } = useI18n();
-  const { aes } = useMeta();
+  const { aes, catName } = useMeta();
   const toast = useToast();
   const [tab, setTab] = useState<Tab>('open');
   const [search, setSearch] = useState('');
@@ -112,7 +112,7 @@ export default function DealsPage() {
           d.account_name,
           t(`segment.${d.segment}`),
           t(`region.${d.region}`),
-          t(`industry.${d.industry}`),
+          catName(d.industry),
           t(`stage.${d.stage}`),
           d.amount,
           d.owner_name,

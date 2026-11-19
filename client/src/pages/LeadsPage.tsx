@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState, type MouseEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRightCircle, Ban, Download, Plus, RotateCcw } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowRightCircle, Ban, Download, Plus, RotateCcw, Tags } from 'lucide-react';
 import { CHANNELS, SEGMENTS, type Channel, type LeadStatus, type Segment } from '../../../shared/constants.ts';
-import type { LeadRow, Paged } from '../../../shared/types.ts';
+import type { LeadFacets, LeadRow, Paged } from '../../../shared/types.ts';
 import { api } from '../lib/api.ts';
 import { useApi } from '../lib/useApi.ts';
 import { useDebounced } from '../lib/useDebounced.ts';
@@ -15,6 +15,7 @@ import { ErrorState, LeadStatusBadge, PageHeader, Pager, SearchInput, SelectFilt
 import { DataTable, type Column, type SortState } from '../components/DataTable.tsx';
 import { ConvertLeadModal, LeadFormModal } from '../components/forms.tsx';
 import { ContactLinks } from '../components/ContactLinks.tsx';
+import { CategoryChips, CategoryTag } from '../components/categories.tsx';
 
 type Tab = 'active' | LeadStatus | 'all';
 const TABS: Tab[] = ['active', 'new', 'mql', 'sql', 'converted', 'disqualified', 'all'];
@@ -22,8 +23,20 @@ const PAGE_SIZE = 25;
 
 export default function LeadsPage() {
   const { t, fmt } = useI18n();
-  const { sdrs } = useMeta();
+  const { sdrs, businesses, multiBusiness, bizName, catName } = useMeta();
   const toast = useToast();
+  const [params, setParams] = useSearchParams();
+  // Business and category live in the URL so other pages can link to them.
+  const business = Number(params.get('business')) || undefined;
+  const industry = params.get('industry') || undefined;
+  const setParam = (k: 'business' | 'industry', v: string | undefined) => {
+    const n = new URLSearchParams(params);
+    if (v) n.set(k, v);
+    else n.delete(k);
+    // A category belongs to a business: changing the business clears it.
+    if (k === 'business') n.delete('industry');
+    setParams(n, { replace: true });
+  };
   const [tab, setTab] = useState<Tab>('active');
   const [search, setSearch] = useState('');
   const [channel, setChannel] = useState<Channel | undefined>();
@@ -36,16 +49,26 @@ export default function LeadsPage() {
   const navigate = useNavigate();
   const q = useDebounced(search);
 
-  const filters = useMemo(() => ({ status: tab === 'all' ? undefined : tab, search: q, channel, segment, owner }), [tab, q, channel, segment, owner]);
+  const filters = useMemo(
+    () => ({ status: tab === 'all' ? undefined : tab, search: q, channel, segment, owner, business, industry }),
+    [tab, q, channel, segment, owner, business, industry],
+  );
   useEffect(() => setPage(1), [filters]);
   const { data, error, loading, reload } = useApi<Paged<LeadRow>>('/leads', { ...filters, sort: sort.key, dir: sort.dir, page, pageSize: PAGE_SIZE });
+  const facets = useApi<LeadFacets>('/leads/facets', filters);
+  const refresh = () => {
+    reload();
+    facets.reload();
+  };
+  const catCounts = useMemo(() => (facets.data ? new Map(facets.data.categories.map((c) => [c.key, c.n])) : null), [facets.data]);
+  const bizCounts = useMemo(() => (facets.data ? new Map(facets.data.businesses.map((b) => [b.id, b.n])) : null), [facets.data]);
 
   const setStatus = async (e: MouseEvent, lead: LeadRow, status: LeadStatus) => {
     e.stopPropagation();
     try {
       await api.patch(`/leads/${lead.id}`, { status });
       toast(t('leads.statusChanged'));
-      reload();
+      refresh();
     } catch (err) {
       toast(errorMessage(err, t), 'bad');
     }
@@ -127,6 +150,18 @@ export default function LeadsPage() {
       nowrap: true,
     },
     {
+      key: 'industry',
+      header: t('col.industry'),
+      sortKey: 'industry',
+      render: (l) => (
+        <div>
+          <CategoryTag k={l.industry} />
+          {multiBusiness && !business && <div className="cell-sub truncate">{bizName(l.business_id)}</div>}
+        </div>
+      ),
+      nowrap: true,
+    },
+    {
       key: 'channel',
       header: t('col.channel'),
       sortKey: 'channel',
@@ -136,6 +171,7 @@ export default function LeadsPage() {
           {l.campaign_name && <div className="cell-sub">{l.campaign_name}</div>}
         </div>
       ),
+      wide: true,
     },
     { key: 'status', header: t('col.status'), sortKey: 'status', render: (l) => <LeadStatusBadge status={l.status} /> },
     { key: 'score', header: t('col.score'), sortKey: 'score', align: 'right', render: (l) => fmt.num(l.score) },
@@ -149,7 +185,7 @@ export default function LeadsPage() {
       const all = await api.get<Paged<LeadRow>>('/leads', { ...filters, sort: sort.key, dir: sort.dir, pageSize: 5000 });
       downloadCsv(
         `leads_${tab}.csv`,
-        ['ID', t('col.name'), t('col.title'), 'Email', t('col.phone'), t('col.company'), t('col.industry'), t('col.segment'), t('col.region'), t('col.channel'), t('col.campaign'), t('col.status'), t('col.score'), t('field.sdr'), t('col.created')],
+        ['ID', t('col.name'), t('col.title'), 'Email', t('col.phone'), t('col.company'), t('cat.business'), t('col.industry'), t('col.segment'), t('col.region'), t('col.channel'), t('col.campaign'), t('col.status'), t('col.score'), t('field.sdr'), t('col.created')],
         all.rows.map((l) => [
           l.id,
           l.name,
@@ -157,7 +193,8 @@ export default function LeadsPage() {
           l.email,
           l.phone,
           l.company,
-          t(`industry.${l.industry}`),
+          bizName(l.business_id),
+          catName(l.industry),
           t(`segment.${l.segment}`),
           t(`region.${l.region}`),
           t(`channel.${l.channel}`),
@@ -186,6 +223,10 @@ export default function LeadsPage() {
                 {t('common.export')}
               </button>
             )}
+            <Link className="btn" to="/leads/categories">
+              <Tags aria-hidden />
+              {t('cat.manage')}
+            </Link>
             <button className="btn primary" onClick={() => setEditing('new')}>
               <Plus aria-hidden />
               {t('leads.new')}
@@ -193,12 +234,29 @@ export default function LeadsPage() {
           </>
         }
       />
+      {multiBusiness && (
+        <div className="tabs wrap biz-switch" role="group" aria-label={t('cat.business')}>
+          <button className="tab" aria-pressed={!business} onClick={() => setParam('business', undefined)}>
+            {t('cat.allBusinesses')}
+            {bizCounts && <span className="count">{fmt.num([...bizCounts.values()].reduce((a, b) => a + b, 0))}</span>}
+          </button>
+          {businesses
+            .filter((b) => b.active || b.id === business)
+            .map((b) => (
+              <button key={b.id} className="tab" aria-pressed={business === b.id} onClick={() => setParam('business', String(b.id))}>
+                {b.name}
+                {bizCounts && <span className="count">{fmt.num(bizCounts.get(b.id) ?? 0)}</span>}
+              </button>
+            ))}
+        </div>
+      )}
       <section className="card">
         <Tabs
           value={tab}
           onChange={setTab}
           items={TABS.map((k) => ({ key: k, label: k === 'active' || k === 'all' ? t(`tab.${k}`) : t(`leadStatus.${k}`) }))}
         />
+        <CategoryChips value={industry} onChange={(k) => setParam('industry', k)} counts={catCounts} total={facets.data?.total ?? null} businessId={business} />
         <div className="table-toolbar">
           <SearchInput value={search} onChange={setSearch} />
           <SelectFilter label={t('col.channel')} value={channel} onChange={setChannel} options={CHANNELS} allLabel={t('filter.allChannels')} render={(v) => t(`channel.${v}`)} />
@@ -235,10 +293,11 @@ export default function LeadsPage() {
       {editing && (
         <LeadFormModal
           lead={editing === 'new' ? null : editing}
+          defaults={{ business, industry }}
           onClose={() => setEditing(null)}
           onSaved={() => {
             setEditing(null);
-            reload();
+            refresh();
           }}
         />
       )}
@@ -248,7 +307,7 @@ export default function LeadsPage() {
           onClose={() => setConverting(null)}
           onSaved={() => {
             setConverting(null);
-            reload();
+            refresh();
           }}
         />
       )}

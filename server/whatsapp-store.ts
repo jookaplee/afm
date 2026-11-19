@@ -5,7 +5,7 @@
 
 import { tx, type Db } from './schema.ts';
 import { HttpError, type Query } from './http.ts';
-import { INDUSTRIES, REGIONS, SEGMENTS } from '../shared/constants.ts';
+import { REGIONS, SEGMENTS } from '../shared/constants.ts';
 import {
   normalizeWaAgentSettings,
   normalizeWaSettings,
@@ -103,7 +103,7 @@ const SENT = `m.direction = 'out' AND m.status <> 'draft'`;
 function loadContacts(db: Db): WaContact[] {
   const rows = db
     .prepare(
-      `SELECT l.id AS lead_id, l.name, l.company, l.account_id, a.area, a.agent_note AS note, l.region, l.segment, l.industry, l.status, l.score,
+      `SELECT l.id AS lead_id, l.name, l.company, l.account_id, a.area, a.agent_note AS note, l.region, l.segment, l.industry, l.business_id, l.status, l.score,
          r.name AS owner_name, l.phone, l.wa_status, l.wa_replied_at, l.wa_unread, l.wa_needs_human, l.wa_human_reason, l.wa_agent_off, l.wa_last_in_at,
          (SELECT COUNT(*) FROM wa_messages m WHERE m.lead_id = l.id AND ${SENT}) AS sent_count,
          (SELECT MAX(created_at) FROM wa_messages m WHERE m.lead_id = l.id AND ${SENT}) AS last_sent_at,
@@ -135,7 +135,7 @@ const str = (q: Query, k: string) => (typeof q[k] === 'string' && q[k] ? (q[k] a
  * Leads with a phone number. Filters: `stage` (todo = not messaged yet and still
  * open, sent, replied, unread, human = needs staff, all), `type` (mobile,
  * landline, invalid, chat), `wa` (yes, no, unknown), `region`, `segment`,
- * `industry`, `search`, `lead_id`.
+ * `industry`, `business`, `search`, `lead_id`.
  */
 export function listContacts(db: Db, q: Query): Paged<WaContact> {
   let rows = loadContacts(db);
@@ -159,7 +159,9 @@ export function listContacts(db: Db, q: Query): Paged<WaContact> {
   const segment = str(q, 'segment');
   if (segment && (SEGMENTS as readonly string[]).includes(segment)) rows = rows.filter((r) => r.segment === segment);
   const industry = str(q, 'industry');
-  if (industry && (INDUSTRIES as readonly string[]).includes(industry)) rows = rows.filter((r) => r.industry === industry);
+  if (industry) rows = rows.filter((r) => r.industry === industry);
+  const business = Number(q.business);
+  if (Number.isInteger(business) && business > 0) rows = rows.filter((r) => r.business_id === business);
   const search = str(q, 'search')?.toLowerCase().trim();
   if (search) {
     const digits = search.replace(/\D/g, '');

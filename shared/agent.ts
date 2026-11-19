@@ -127,6 +127,8 @@ export interface AgentAccountRecord {
   name: string;
   legal_name: string | null;
   industry: Industry;
+  /** The category's name and description, for the prompt. */
+  category_brief: string;
   region: Region;
   area: string | null;
   address: string | null;
@@ -141,6 +143,12 @@ export interface AgentAccountRecord {
 
 export interface DiscoverTarget {
   category: Industry;
+  /** The category's name. */
+  label: string;
+  /** Who belongs in the category (its name and description). */
+  brief: string;
+  /** The business of the group the leads are for (name and description). */
+  business: string;
   region: Region;
   /** Names already in the CRM for this category and region. */
   exclude: string[];
@@ -290,13 +298,6 @@ export function nameKey(name: string): string {
 
 // ---------- Prompts and report tools ----------
 
-export const CATEGORY_BRIEF: Record<Industry, string> = {
-  restoran_halal_western: 'Halal Western restaurants (grill, steakhouse, burgers, Western food)',
-  kafe_premium_steak_bbq: 'Premium cafés and steak, BBQ or yakiniku restaurants',
-  penjual_perap_online: 'Online sellers of marinated meat (frozen marinated chicken, beef or lamb sold through Instagram, Facebook, TikTok Shop, Shopee or WhatsApp)',
-  other: 'Other F&B businesses that buy meat or seafood in volume',
-};
-
 export const REGION_BRIEF: Record<Region, string> = {
   klang_valley: 'Klang Valley (Kuala Lumpur, Selangor, Putrajaya)',
   northern: 'Northern Malaysia (Penang, Perak, Kedah, Perlis)',
@@ -306,11 +307,16 @@ export const REGION_BRIEF: Record<Region, string> = {
   sarawak: 'Sarawak',
 };
 
-const COMPANY =
-  'a Malaysian supplier of halal frozen meat and seafood (beef, lamb, chicken, seafood) to F&B businesses';
+const COMPANY = 'JOOSONS, a Malaysian group of businesses selling B2B';
+
+/** A category for a prompt: "Name: description". */
+export function categoryBrief(name: string, description: string | null | undefined): string {
+  const d = description?.trim();
+  return d ? `${name}: ${d}` : name;
+}
 
 export const VERIFY_SYSTEM = `You are the data verification agent in the B2B sales CRM of ${COMPANY}.
-Check that one prospect record is correct and current, using web search and web fetch: the business's Google Maps / Google Business listing, official website, Facebook, Instagram, TikTok, delivery platforms (GrabFood, Foodpanda), food directories and news.
+Check that one prospect record is correct and current, using web search and web fetch: the business's Google Maps / Google Business listing, official website, Facebook, Instagram, TikTok, delivery platforms (GrabFood, Foodpanda) for F&B, business directories and news.
 
 Rules:
 - Report only facts you found in a source during this check. Never guess or invent; use null when you did not find a value.
@@ -326,10 +332,10 @@ Rules:
 - When done, call report_verification exactly once. Write nothing after it.`;
 
 export const DISCOVER_SYSTEM = `You are the lead-generation agent in the B2B sales CRM of ${COMPANY}.
-Find NEW prospects: real businesses in Malaysia, currently operating, that buy meat or seafood in volume and match the target category and region. Use web search and web fetch: Google Maps listings, food directories, delivery platforms, Facebook and Instagram pages, news and "best of" lists.
+Find NEW prospects: real businesses in Malaysia, currently operating, that match the target category and region and could buy in volume from our business described in the message. Use web search and web fetch: Google Maps listings, business and food directories, delivery platforms, Facebook and Instagram pages, news and "best of" lists.
 
 Rules:
-- Halal or Muslim-friendly businesses only.
+- Follow every requirement in our business description (for example halal or Muslim-friendly only).
 - Skip every business in the exclusion list; another outlet of a listed brand counts as listed.
 - Never invent details; use null for anything you did not find. Every lead needs at least one source URL and at least one way to reach it (phone, website or social page).
 - confidence: "high" when the business's own listing or page confirms the details, "medium" for reliable third-party listings, "low" otherwise.
@@ -338,7 +344,7 @@ Rules:
 - Return fewer leads rather than doubtful ones. When done, call report_new_leads exactly once. Write nothing after it.`;
 
 /** User message for verifying one account. */
-export function verifyPrompt(a: AgentAccountRecord, today: string, labels: { category: string; region: string }): string {
+export function verifyPrompt(a: AgentAccountRecord, today: string, labels: { region: string }): string {
   let socials: Record<string, string> = {};
   try {
     socials = a.socials ? (JSON.parse(a.socials) as Record<string, string>) : {};
@@ -348,7 +354,7 @@ export function verifyPrompt(a: AgentAccountRecord, today: string, labels: { cat
   const record = {
     name: a.name,
     legal_name: a.legal_name,
-    category: labels.category,
+    category: a.category_brief,
     region: labels.region,
     area: a.area,
     address: a.address,
@@ -368,7 +374,7 @@ export function verifyPrompt(a: AgentAccountRecord, today: string, labels: { cat
 /** User message for finding new leads. */
 export function discoverPrompt(t: DiscoverTarget, count: number, today: string): string {
   const list = t.exclude.length ? t.exclude.map((n) => `- ${n}`).join('\n') : '(none yet)';
-  return `Target category: ${CATEGORY_BRIEF[t.category]}\nTarget region: ${REGION_BRIEF[t.region]}\nFind up to ${count} new leads.\nToday is ${today}.\n\nAlready in the CRM for this category and region (exclude):\n${list}`;
+  return `Our business: ${t.business}\nTarget category: ${t.brief}\nTarget region: ${REGION_BRIEF[t.region]}\nFind up to ${count} new leads.\nToday is ${today}.\n\nAlready in the CRM for this category and region (exclude):\n${list}`;
 }
 
 const nullable = (schema: object) => ({ anyOf: [schema, { type: 'null' }] });
@@ -451,5 +457,3 @@ export const DISCOVER_TOOL = {
   },
 };
 
-/** Discovery targets rotate through every category x region pair. */
-export const DISCOVER_CATEGORIES: Industry[] = ['restoran_halal_western', 'kafe_premium_steak_bbq', 'penjual_perap_online'];

@@ -9,7 +9,6 @@ import {
   CAMPAIGN_STATUSES,
   CHANNELS,
   DEAL_TYPES,
-  INDUSTRIES,
   LEAD_STATUSES,
   LOST_REASONS,
   OPEN_STAGES,
@@ -20,7 +19,8 @@ import {
   SOURCES,
   STAGES,
 } from '../shared/constants.ts';
-import type { Account, AccountDetail, AccountRow, Campaign, Deal, DealRow, Lead, LeadRow, Paged, RepRow } from '../shared/types.ts';
+import type { Account, AccountDetail, AccountRow, Campaign, Deal, DealRow, Lead, LeadFacets, LeadRow, Paged, RepRow } from '../shared/types.ts';
+import { checkCategory, leadBusiness } from './categories-store.ts';
 
 type Params = (string | number | null)[];
 
@@ -204,7 +204,8 @@ const leadSchema: Schema = {
   phone: { type: 'string', nullable: true, maxLen: 40 },
   title: { type: 'string', nullable: true, maxLen: 120 },
   company: { type: 'string', required: true, maxLen: 200 },
-  industry: { type: 'enum', values: INDUSTRIES, required: true },
+  industry: { type: 'string', required: true, maxLen: 60 },
+  business_id: { type: 'ref', table: 'businesses', nullable: true },
   segment: { type: 'enum', values: SEGMENTS, required: true },
   region: { type: 'enum', values: REGIONS, required: true },
   channel: { type: 'enum', values: CHANNELS, required: true },
@@ -217,7 +218,8 @@ export function getLead(db: Db, id: number): LeadRow {
   return mustGet<LeadRow>(db, `${LEAD_ROW_SQL} WHERE l.id = ?`, id, 'Lead');
 }
 
-export function listLeads(db: Db, q: Query): Paged<LeadRow> {
+/** WHERE for the lead list; `omit` leaves filters out (for the facet counts). */
+function leadWhere(q: Query, omit: ReadonlySet<string> = new Set()): { sql: string; params: Params } {
   const where: string[] = [];
   const params: Params = [];
   const search = str(q, 'search');
@@ -243,29 +245,54 @@ export function listLeads(db: Db, q: Query): Paged<LeadRow> {
       params.push(v);
     }
   }
+  const industry = omit.has('industry') ? undefined : str(q, 'industry');
+  if (industry) {
+    where.push('l.industry = ?');
+    params.push(industry);
+  }
   for (const [key, col] of [
     ['owner', 'l.owner_id'],
     ['campaign', 'l.campaign_id'],
     ['account', 'l.account_id'],
+    ['business', 'l.business_id'],
   ] as const) {
+    if (omit.has(key)) continue;
     const v = intParam(q, key, { min: 1 });
     if (v) {
       where.push(`${col} = ?`);
       params.push(v);
     }
   }
-  const base = `${LEAD_ROW_SQL} ${where.length ? `WHERE ${where.join(' AND ')}` : ''}`;
+  return { sql: where.length ? `WHERE ${where.join(' AND ')}` : '', params };
+}
+
+export function listLeads(db: Db, q: Query): Paged<LeadRow> {
+  const w = leadWhere(q);
+  const base = `${LEAD_ROW_SQL} ${w.sql}`;
   const order = orderBy(
     q,
-    { name: 'name', company: 'company', score: 'score', status: 'status', created_at: 'created_at', channel: 'channel' },
+    { name: 'name', company: 'company', score: 'score', status: 'status', created_at: 'created_at', channel: 'channel', industry: 'industry' },
     'created_at',
     'score DESC',
   );
-  return paged<LeadRow>(db, base, params, order, q);
+  return paged<LeadRow>(db, base, w.params, order, q);
+}
+
+/** Lead counts per category (other filters applied) and per business (category and business left out). */
+export function leadFacets(db: Db, q: Query): LeadFacets {
+  const byCat = leadWhere(q, new Set(['industry']));
+  const categories = db.prepare(`SELECT l.industry AS key, COUNT(*) AS n FROM leads l ${byCat.sql} GROUP BY l.industry`).all(...byCat.params) as LeadFacets['categories'];
+  const byBiz = leadWhere(q, new Set(['industry', 'business']));
+  const businesses = db
+    .prepare(`SELECT l.business_id AS id, COUNT(*) AS n FROM leads l ${byBiz.sql} GROUP BY l.business_id`)
+    .all(...byBiz.params) as LeadFacets['businesses'];
+  return { categories, businesses, total: categories.reduce((s, c) => s + c.n, 0) };
 }
 
 export function createLead(db: Db, body: unknown, today: string): LeadRow {
   const data = validateBody(db, body, leadSchema);
+  const cat = checkCategory(db, data.industry);
+  data.business_id = leadBusiness(db, cat, data.business_id as number | null, null);
   const id = insert(db, 'leads', { ...data, score: data.score ?? 20, status: 'new', created_at: today });
   return getLead(db, id);
 }
@@ -287,6 +314,10 @@ export function updateLead(db: Db, id: number, body: unknown, today: string): Le
   }
   if (data.status === null) delete data.status;
   if (data.score === null) delete data.score;
+  if (data.industry !== undefined || data.business_id !== undefined) {
+    const cat = checkCategory(db, data.industry ?? prev.industry);
+    data.business_id = leadBusiness(db, cat, data.business_id as number | null | undefined, prev.business_id);
+  }
   update(db, 'leads', id, data);
   return getLead(db, id);
 }
@@ -467,7 +498,7 @@ const ACCOUNT_ROW_SQL = `
 
 const accountSchema: Schema = {
   name: { type: 'string', required: true, maxLen: 200 },
-  industry: { type: 'enum', values: INDUSTRIES, required: true },
+  industry: { type: 'string', required: true, maxLen: 60 },
   segment: { type: 'enum', values: SEGMENTS, required: true },
   region: { type: 'enum', values: REGIONS, required: true },
   employees: { type: 'int', nullable: true, min: 0, max: 10_000_000 },
@@ -495,7 +526,6 @@ function accountWhere(q: Query) {
   for (const [key, col, values] of [
     ['segment', 'a.segment', SEGMENTS],
     ['region', 'a.region', REGIONS],
-    ['industry', 'a.industry', INDUSTRIES],
     ['tier', 'a.tier', ABM_TIERS],
   ] as const) {
     const v = oneOf(q, key, values);
@@ -503,6 +533,11 @@ function accountWhere(q: Query) {
       where.push(`${col} = ?`);
       params.push(v);
     }
+  }
+  const industry = str(q, 'industry');
+  if (industry) {
+    where.push('a.industry = ?');
+    params.push(industry);
   }
   const owner = intParam(q, 'owner', { min: 1 });
   if (owner) {
@@ -558,7 +593,9 @@ export function accountSummary(db: Db, q: Query) {
       pipeline: rows.reduce((s, r) => s + r.open_pipeline, 0),
     },
     bySegment: group('segment', SEGMENTS),
-    byIndustry: group('industry', INDUSTRIES).sort((a, b) => b.revenue - a.revenue),
+    byIndustry: group('industry', (db.prepare('SELECT key FROM lead_categories ORDER BY sort, id').all() as { key: string }[]).map((c) => c.key))
+      .filter((g) => g.accounts > 0)
+      .sort((a, b) => b.revenue - a.revenue || b.accounts - a.accounts),
     byTier: group('tier', ABM_TIERS),
   };
 }
@@ -578,6 +615,7 @@ export function getAccount(db: Db, id: number): AccountDetail {
 
 export function createAccount(db: Db, body: unknown, today: string): AccountRow {
   const data = validateBody(db, body, accountSchema);
+  checkCategory(db, data.industry);
   const id = insert(db, 'accounts', {
     ...data,
     employees: data.employees ?? 0,
@@ -590,6 +628,7 @@ export function createAccount(db: Db, body: unknown, today: string): AccountRow 
 export function updateAccount(db: Db, id: number, body: unknown): AccountRow {
   const prev = mustGet<Account>(db, 'SELECT * FROM accounts WHERE id = ?', id, 'Account');
   const data = validateBody(db, body, accountSchema, true);
+  if (data.industry !== undefined) checkCategory(db, data.industry);
   if (data.employees === null) data.employees = 0;
   if (data.tier === null) {
     const segment = (data.segment ?? prev.segment) as string;

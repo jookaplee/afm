@@ -342,7 +342,7 @@ describe('agent cycle', () => {
 
   it('drops leads without a source or a way to reach them', () => {
     const leads = toCandidates(
-      { category: 'penjual_perap_online', region: 'northern', exclude: [] },
+      { category: 'penjual_perap_online', label: 'Penjual perap', brief: 'Penjual perap', business: 'Ujian', region: 'northern', exclude: [] },
       { leads: [{ name: 'Ok', sources: ['https://x.example'], phone: '0123456789' }, { name: 'No contact', sources: ['https://x.example'] }, { name: '', sources: ['https://x.example'], phone: '0123456789' }] },
     );
     assert.deepEqual(leads.map((l) => [l.name, l.phone, l.category]), [['Ok', '012-3456789', 'penjual_perap_online']]);

@@ -47,6 +47,7 @@ const MarketingPage = lazy(() => import('./pages/MarketingPage.tsx'));
 const PipelinePage = lazy(() => import('./pages/PipelinePage.tsx'));
 const DealsPage = lazy(() => import('./pages/DealsPage.tsx'));
 const LeadsPage = lazy(() => import('./pages/LeadsPage.tsx'));
+const CategoriesPage = lazy(() => import('./pages/CategoriesPage.tsx'));
 const CampaignsPage = lazy(() => import('./pages/CampaignsPage.tsx'));
 const AccountsPage = lazy(() => import('./pages/AccountsPage.tsx'));
 const AccountDetailPage = lazy(() => import('./pages/AccountDetailPage.tsx'));
@@ -252,6 +253,7 @@ export function App() {
             <Route path="/pipeline" element={<PipelinePage />} />
             <Route path="/deals" element={<DealsPage />} />
             <Route path="/leads" element={<LeadsPage />} />
+            <Route path="/leads/categories" element={<CategoriesPage />} />
             <Route path="/campaigns" element={<CampaignsPage />} />
             <Route path="/accounts" element={<AccountsPage />} />
             <Route path="/accounts/:id" element={<AccountDetailPage />} />

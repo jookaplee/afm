@@ -45,7 +45,7 @@ Personalise it to the business from the details given, and sign with the sender'
 Reply with the message text only.`;
 
 /** Asks Claude for a personalised draft. Throws "no_key" when no API key is set. */
-export async function aiDraft(o: { target: WaTarget; settings: WaSettings; template: string | null; t: TFn }): Promise<string> {
+export async function aiDraft(o: { target: WaTarget; settings: WaSettings; template: string | null; t: TFn; catName: (key: string) => string }): Promise<string> {
   const key = getApiKey();
   if (!key) throw new Error('no_key');
   const { default: Anthropic } = await import('@anthropic-ai/sdk');
@@ -54,7 +54,7 @@ export async function aiDraft(o: { target: WaTarget; settings: WaSettings; templ
   const details = {
     business: o.target.company,
     contact_name: o.target.name,
-    category: o.target.industry ? o.t(`industry.${o.target.industry}`) : null,
+    category: o.target.industry ? o.catName(o.target.industry) : null,
     area: place(o.target, o.t),
     notes: o.target.note ?? null,
     sender_name: o.settings.myName || null,

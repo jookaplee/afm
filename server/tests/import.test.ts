@@ -70,7 +70,8 @@ describe('prospect list import', () => {
     assert.equal(big.phone, '03-1111111');
     assert.equal(big.sales_estimate, 2_500_000);
     assert.deepEqual(JSON.parse(big.socials!), { facebook: 'https://facebook.com/contoh' });
-    assert.equal(accounts.rows.find((a) => a.name === 'Tanpa Kategori')!.industry, 'other');
+    // A category the app did not know becomes a category of its own.
+    assert.equal(accounts.rows.find((a) => a.name === 'Tanpa Kategori')!.industry, 'hotel');
     const leads = handle('GET', '/leads', { pageSize: '10' }, undefined).body as Paged<LeadRow>;
     assert.equal(leads.total, 4);
     assert.ok(leads.rows.every((l) => l.status === 'new' && l.channel === 'prospect_list' && l.account_id && l.created_at === TODAY));
