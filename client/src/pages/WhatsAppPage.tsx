@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { History, Megaphone, MessageCircle, Search, Settings2, SlidersHorizontal, SquarePen } from 'lucide-react';
+import { AlertTriangle, Bot, History, Megaphone, MessageCircle, Search, Settings2, SlidersHorizontal, SquarePen } from 'lucide-react';
 import { REGIONS, SEGMENTS, type Region, type Segment } from '../../../shared/constants.ts';
 import type { Paged, WaContact, WaSummary, WaTemplate } from '../../../shared/types.ts';
 import { useApi } from '../lib/useApi.ts';
@@ -9,44 +9,67 @@ import { useDebounced } from '../lib/useDebounced.ts';
 import { ErrorState, Loading } from '../components/ui.tsx';
 import { Conversation } from '../whatsapp/Conversation.tsx';
 import { WaCampaign } from '../whatsapp/WaCampaign.tsx';
-import { WaSettingsModal } from '../whatsapp/WaForms.tsx';
+import { WaAgentModal, WaSettingsModal } from '../whatsapp/WaForms.tsx';
+import { useAgentTyping } from '../whatsapp/agent.ts';
 import { LogModal, TemplatesModal } from '../whatsapp/WaManage.tsx';
 import { Avatar, Ticks, chatTime } from '../whatsapp/ui.tsx';
 
-type Stage = 'all' | 'todo' | 'sent' | 'replied';
+type Stage = 'all' | 'unread' | 'human' | 'todo' | 'sent' | 'replied';
 type PhoneFilter = 'mobile' | 'landline' | 'invalid' | 'chat';
 const STEP = 40;
 
-function ChatRow({ c, active, onOpen }: { c: WaContact; active: boolean; onOpen: () => void }) {
+function ChatRow({ c, active, typing, onOpen }: { c: WaContact; active: boolean; typing: boolean; onOpen: () => void }) {
   const { t, fmt } = useI18n();
-  const sent = c.sent_count > 0;
-  const lastAt = [c.wa_replied_at, c.last_sent_at].filter(Boolean).sort().pop() ?? null;
+  const hasMessages = !!c.last_at;
+  const lastAt = [c.wa_replied_at, c.last_sent_at, c.last_at].filter(Boolean).sort().pop() ?? null;
+  const unread = c.wa_unread > 0;
   return (
-    <button type="button" className="wa-row" aria-current={active ? 'true' : undefined} onClick={onOpen}>
+    <button type="button" className={`wa-row ${unread ? 'unread' : ''}`} aria-current={active ? 'true' : undefined} onClick={onOpen}>
       <Avatar name={c.company} seed={c.lead_id} />
       <span className="wa-row-main">
         <span className="wa-row-top">
           <span className="wa-row-name">{c.company}</span>
-          <span className={`wa-row-time ${c.wa_replied_at ? 'hot' : ''}`}>{chatTime(lastAt, fmt, t)}</span>
+          <span className={`wa-row-time ${unread ? 'hot' : ''}`}>{chatTime(lastAt, fmt, t)}</span>
         </span>
         <span className="wa-row-bottom">
           <span className="wa-row-preview">
-            {sent ? (
-              <>
-                <Ticks read={!!c.wa_replied_at} />
-                {c.last_body}
-              </>
-            ) : (
+            {typing ? (
+              <span className="wa-typing-text">{t('wa.agentTyping')}</span>
+            ) : !hasMessages ? (
               <>
                 {c.name} · {c.phone}
               </>
+            ) : c.last_status === 'draft' ? (
+              <>
+                <span className="wa-draft-label">{t('wa.draftLabel')}</span>
+                {c.last_body}
+              </>
+            ) : c.last_direction === 'out' ? (
+              <>
+                <Ticks read={c.last_status === 'read' || !!c.wa_replied_at} />
+                {c.last_body}
+              </>
+            ) : (
+              <>{c.last_body}</>
             )}
           </span>
-          {c.wa_replied_at ? (
+          {!!c.wa_needs_human && (
+            <span className="wa-pill human" title={c.wa_human_reason ?? undefined}>
+              <AlertTriangle aria-hidden />
+              {t('wa.needsHumanShort')}
+            </span>
+          )}
+          {unread ? (
+            <span className="wa-unread" aria-label={t('wa.unreadCount', { n: c.wa_unread })}>
+              {c.wa_unread}
+            </span>
+          ) : c.drafts > 0 && !c.wa_needs_human ? (
+            <span className="wa-pill draft">{t('wa.draftLabelShort')}</span>
+          ) : c.wa_replied_at && !c.wa_needs_human && !c.wa_last_in_at ? (
             <span className="wa-pill">{t('wa.repliedBadge')}</span>
           ) : c.wa_status === 'no' ? (
             <span className="wa-pill muted">{t('wa.status.no')}</span>
-          ) : !sent && c.intl ? (
+          ) : !hasMessages && c.intl ? (
             <span className="wa-dot" title={t('wa.stage.todo')}>
               <span className="sr-only">{t('wa.stage.todo')}</span>
             </span>
@@ -57,7 +80,7 @@ function ChatRow({ c, active, onOpen }: { c: WaContact; active: boolean; onOpen:
   );
 }
 
-function EmptyPane({ s, onCampaign }: { s: WaSummary | undefined; onCampaign: () => void }) {
+function EmptyPane({ s, onCampaign, onAgent }: { s: WaSummary | undefined; onCampaign: () => void; onAgent: () => void }) {
   const { t, fmt } = useI18n();
   return (
     <div className="wa-empty">
@@ -66,6 +89,15 @@ function EmptyPane({ s, onCampaign }: { s: WaSummary | undefined; onCampaign: ()
       </span>
       <h2>{t('wa.noChatTitle')}</h2>
       <p>{t('wa.noChatBody')}</p>
+      {s && (
+        <button type="button" className={`wa-mode ${s.live ? 'live' : ''}`} onClick={onAgent}>
+          <Bot aria-hidden />
+          <span>
+            <strong>{s.live ? t('wa.modeLive') : t('wa.modeAssist')}</strong>
+            <span>{s.live ? t('wa.modeLiveBody') : t('wa.modeAssistBody')}</span>
+          </span>
+        </button>
+      )}
       {s && (
         <dl className="wa-empty-stats">
           <div>
@@ -114,6 +146,8 @@ export default function WhatsAppPage() {
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [logOpen, setLogOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [agentOpen, setAgentOpen] = useState(false);
+  const typing = useAgentTyping();
   const q = useDebounced(search);
   const bump = () => setVersion((v) => v + 1);
 
@@ -128,6 +162,19 @@ export default function WhatsAppPage() {
   const selected = useApi<Paged<WaContact>>(selectedId ? '/wa/contacts' : null, { lead_id: selectedId ?? undefined, v: version });
   const contact = selected.data?.rows[0] ?? null;
   const s = summary.data;
+
+  // A reply the agent just drafted shows up in the list.
+  const typingCount = useRef(typing.size);
+  useEffect(() => {
+    if (typing.size < typingCount.current) bump();
+    typingCount.current = typing.size;
+  }, [typing]);
+  // Connected to WhatsApp (or the server answers): new messages arrive by themselves.
+  useEffect(() => {
+    if (!s?.live && !s?.agentServer) return;
+    const id = setInterval(bump, 10_000);
+    return () => clearInterval(id);
+  }, [s?.live, s?.agentServer]);
   const needsSender = !!s && (!s.settings.myName || !s.settings.company);
 
   const open = (leadId: number | null) => {
@@ -144,6 +191,9 @@ export default function WhatsAppPage() {
           <header className="wa-side-head">
             <h1>{t('wa.title')}</h1>
             <div className="wa-head-icons">
+              <button type="button" className="wa-icon-btn" onClick={() => setAgentOpen(true)} aria-label={t('wa.agentSettings')} title={t('wa.agentSettings')} disabled={!s}>
+                <Bot aria-hidden />
+              </button>
               <button type="button" className="wa-icon-btn" onClick={() => setCampaign(true)} aria-label={t('wa.campaign')} title={t('wa.campaign')} disabled={!s || !templates.data}>
                 <Megaphone aria-hidden />
               </button>
@@ -175,9 +225,11 @@ export default function WhatsAppPage() {
             </button>
           </div>
           <div className="wa-chips" role="group" aria-label={t('wa.col.status')}>
-            {(['all', 'todo', 'sent', 'replied'] as Stage[]).map((k) => (
+            {(['all', 'unread', 'human', 'todo', 'sent', 'replied'] as Stage[]).map((k) => (
               <button key={k} type="button" className="wa-chip" aria-pressed={stage === k} onClick={() => setStage(k)}>
                 {t(`wa.stage.${k}`)}
+                {k === 'unread' && !!s?.unread && <span className="wa-chip-count">{s.unread}</span>}
+                {k === 'human' && !!s?.needsHuman && <span className="wa-chip-count human">{s.needsHuman}</span>}
               </button>
             ))}
           </div>
@@ -219,7 +271,7 @@ export default function WhatsAppPage() {
               list.data.rows.length ? (
                 <>
                   {list.data.rows.map((c) => (
-                    <ChatRow key={c.lead_id} c={c} active={c.lead_id === selectedId} onOpen={() => open(c.lead_id)} />
+                    <ChatRow key={c.lead_id} c={c} active={c.lead_id === selectedId} typing={typing.has(c.lead_id)} onOpen={() => open(c.lead_id)} />
                   ))}
                   {list.data.total > list.data.rows.length && (
                     <button type="button" className="wa-more" onClick={() => setLimit((n) => n + STEP)}>
@@ -242,8 +294,9 @@ export default function WhatsAppPage() {
           {selectedId && contact && s && templates.data ? (
             <Conversation
               contact={contact}
-              settings={s.settings}
+              summary={s}
               templates={templates.data}
+              tick={version}
               onBack={() => open(null)}
               onChanged={bump}
               onManageTemplates={() => setTemplatesOpen(true)}
@@ -251,7 +304,7 @@ export default function WhatsAppPage() {
           ) : selectedId && !selected.error ? (
             <Loading />
           ) : (
-            <EmptyPane s={s} onCampaign={() => setCampaign(true)} />
+            <EmptyPane s={s} onCampaign={() => setCampaign(true)} onAgent={() => setAgentOpen(true)} />
           )}
         </div>
       </div>
@@ -278,6 +331,7 @@ export default function WhatsAppPage() {
         />
       )}
       {settingsOpen && s && <WaSettingsModal settings={s.settings} onClose={() => setSettingsOpen(false)} onSaved={bump} />}
+      {agentOpen && s && <WaAgentModal summary={s} onClose={() => setAgentOpen(false)} onSaved={bump} />}
     </div>
   );
 }

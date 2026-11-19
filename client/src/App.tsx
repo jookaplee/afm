@@ -18,6 +18,7 @@ import {
   Monitor,
   Moon,
   RefreshCcw,
+  ShoppingBag,
   Sparkles,
   Sun,
   Target,
@@ -30,10 +31,12 @@ import { errorMessage } from './lib/errors.ts';
 import { useConfirm, useMeta, useTheme, useToast } from './lib/app-context.tsx';
 import { OWN_THEME, STANDALONE } from './lib/env.ts';
 import { api } from './lib/api.ts';
+import type { OrderSummary, WaSummary } from '../../shared/types.ts';
 import { Loading, Modal } from './components/ui.tsx';
 import { useApi } from './lib/useApi.ts';
 import { forgetKey, sealedDataset } from './standalone/unlock.ts';
 import { agentEngine, useAgent } from './agent/engine.ts';
+import { useAgentTyping } from './whatsapp/agent.ts';
 
 // Pages carrying a password-protected prospect list can be locked again.
 const PROTECTED = STANDALONE && sealedDataset() !== null;
@@ -50,6 +53,7 @@ const AccountDetailPage = lazy(() => import('./pages/AccountDetailPage.tsx'));
 const TeamPage = lazy(() => import('./pages/TeamPage.tsx'));
 const AgentPage = lazy(() => import('./pages/AgentPage.tsx'));
 const WhatsAppPage = lazy(() => import('./pages/WhatsAppPage.tsx'));
+const OrdersPage = lazy(() => import('./pages/OrdersPage.tsx'));
 
 type Icon = ComponentType<{ 'aria-hidden'?: boolean }>;
 
@@ -96,6 +100,19 @@ export function App() {
     if (resetKey) agentEngine.touched();
   }, [resetKey]);
   const agentPending = agent.summary?.findings.pending ?? 0;
+  // Badges: chats waiting (unread or needing a person) and orders waiting for confirmation.
+  // Refreshed on navigation, when the WhatsApp agent finishes, and every 30 seconds.
+  const waTyping = useAgentTyping();
+  const [badgeTick, setBadgeTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setBadgeTick((n) => n + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
+  const badgeKey = `${resetKey}.${location.pathname}.${location.search}.${waTyping.size}.${badgeTick}`;
+  const wa = useApi<WaSummary>('/wa/summary', { k: badgeKey });
+  const ord = useApi<OrderSummary>('/orders/summary', { k: badgeKey });
+  const waUnread = (wa.data?.unread ?? 0) + (wa.data?.needsHuman ?? 0);
+  const ordersPending = ord.data?.counts.pending ?? 0;
   useEffect(() => {
     document.title = `${meta.appName} · ${t('app.subtitle')}`;
   }, [meta.appName, t]);
@@ -109,7 +126,8 @@ export function App() {
     { to: '/pipeline', label: t('nav.pipeline'), icon: Columns3, tile: 'var(--tile-indigo)' },
     { to: '/deals', label: t('nav.deals'), icon: Handshake, tile: 'var(--tile-teal)' },
     { to: '/leads', label: t('nav.leads'), icon: UserPlus, tile: 'var(--tile-pink)' },
-    { to: '/whatsapp', label: t('nav.whatsapp'), icon: MessageCircle, tile: 'var(--tile-green)' },
+    { to: '/whatsapp', label: t('nav.whatsapp'), icon: MessageCircle, tile: 'var(--tile-green)', count: waUnread },
+    { to: '/orders', label: t('nav.orders'), icon: ShoppingBag, tile: 'var(--tile-orange)', count: ordersPending },
     { to: '/campaigns', label: t('nav.campaigns'), icon: Target, tile: 'var(--tile-purple)' },
     { to: '/accounts', label: t('nav.accounts'), icon: Building2, tile: 'var(--tile-gray)' },
     { to: '/team', label: t('nav.team'), icon: Users, tile: 'var(--tile-blue)' },
@@ -240,6 +258,7 @@ export function App() {
             <Route path="/team" element={<TeamPage />} />
             <Route path="/agent" element={<AgentPage />} />
             <Route path="/whatsapp" element={<WhatsAppPage />} />
+            <Route path="/orders" element={<OrdersPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>

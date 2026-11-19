@@ -8,6 +8,8 @@ import type {
   DealType,
   FunnelStage,
   Industry,
+  OrderStatus,
+  ProductCategory,
   LeadStatus,
   LostReason,
   OpenStage,
@@ -421,7 +423,23 @@ export interface WaContact {
   last_body: string | null;
   /** The AI agent's summary of the business, if any (for AI drafts). */
   note: string | null;
+  wa_unread: number;
+  wa_needs_human: number;
+  wa_human_reason: string | null;
+  wa_agent_off: number;
+  wa_last_in_at: string | null;
+  /** Direction, author and status of the latest message (for the list preview). */
+  last_direction: WaDirection | null;
+  last_author: WaAuthor | null;
+  last_status: WaMessageStatus | null;
+  last_at: string | null;
+  drafts: number;
 }
+
+export type WaDirection = 'in' | 'out';
+export type WaAuthor = 'user' | 'agent' | 'contact';
+/** opened (wa.me), draft (waiting for approval), queued/sent/delivered/read/failed (Business API), received (incoming). */
+export type WaMessageStatus = 'opened' | 'draft' | 'queued' | 'sent' | 'delivered' | 'read' | 'failed' | 'received';
 
 export interface WaMessageRow {
   id: number;
@@ -434,6 +452,11 @@ export interface WaMessageRow {
   lead_name: string | null;
   company: string | null;
   created_at: string;
+  direction: WaDirection;
+  author: WaAuthor;
+  status: WaMessageStatus;
+  wa_id: string | null;
+  error: string | null;
 }
 
 export interface WaSummary {
@@ -451,4 +474,73 @@ export interface WaSummary {
   replied: number;
   messages: number;
   messagesToday: number;
+  unread: number;
+  needsHuman: number;
+  drafts: number;
+  /** Connected to the WhatsApp Business Platform (messages arrive and send by themselves). */
+  live: boolean;
+  /** The server runs the WhatsApp agent (ANTHROPIC_API_KEY on the server). */
+  agentServer: boolean;
+}
+
+// ---------- Orders ----------
+
+/** A catalog item (not to be confused with the deal's product line). */
+export interface CatalogProduct {
+  id: number;
+  name: string;
+  category: ProductCategory;
+  unit: string;
+  price_sen: number;
+  min_qty: number | null;
+  stock: number | null;
+  description: string | null;
+  active: number;
+  created_at: string;
+}
+
+export interface OrderItem {
+  id: number;
+  order_id: number;
+  product_id: number | null;
+  name: string;
+  unit: string;
+  qty: number;
+  price_sen: number;
+}
+
+export type OrderSource = 'whatsapp_agent' | 'manual';
+
+export interface OrderRow {
+  id: number;
+  lead_id: number | null;
+  account_id: number | null;
+  status: OrderStatus;
+  total_sen: number;
+  delivery_date: string | null;
+  delivery_address: string | null;
+  notes: string | null;
+  source: OrderSource;
+  deal_id: number | null;
+  cancel_reason: string | null;
+  created_at: string;
+  updated_at: string;
+  lead_name: string | null;
+  company: string | null;
+  phone: string | null;
+  items_count: number;
+  items_summary: string | null;
+}
+
+export interface OrderDetail extends OrderRow {
+  items: OrderItem[];
+}
+
+export interface OrderSummary {
+  counts: Record<OrderStatus, number>;
+  todayCount: number;
+  /** Confirmed, processing and delivered orders this month. */
+  monthValueSen: number;
+  monthCount: number;
+  pendingValueSen: number;
 }

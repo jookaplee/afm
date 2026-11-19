@@ -13,9 +13,10 @@ export type Industry = (typeof INDUSTRIES)[number];
 
 // Lead channels. Order is the categorical colour order in charts - never reorder.
 // The first six are marketing channels with campaigns; "prospect_list" is an
-// imported or researched prospect list (charted in neutral grey).
+// imported or researched prospect list (charted in neutral grey); "whatsapp" is
+// a customer who wrote in on WhatsApp first.
 export const MARKETING_CHANNELS = ['linkedin', 'search', 'events', 'email', 'content', 'referral'] as const;
-export const CHANNELS = [...MARKETING_CHANNELS, 'prospect_list'] as const;
+export const CHANNELS = [...MARKETING_CHANNELS, 'prospect_list', 'whatsapp'] as const;
 export type MarketingChannel = (typeof MARKETING_CHANNELS)[number];
 export type Channel = (typeof CHANNELS)[number];
 
@@ -40,6 +41,14 @@ export const STAGE_PROBABILITY: Record<Stage, number> = {
 // Frozen halal meat & seafood product lines.
 export const PRODUCTS = ['beef', 'lamb', 'chicken', 'seafood'] as const;
 export type Product = (typeof PRODUCTS)[number];
+
+// Catalog categories (product lines plus anything else sold, e.g. sauces).
+export const PRODUCT_CATEGORIES = [...PRODUCTS, 'other'] as const;
+export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
+
+// pending (taken, waiting for staff) -> confirmed -> processing -> delivered; or cancelled.
+export const ORDER_STATUSES = ['pending', 'confirmed', 'processing', 'delivered', 'cancelled'] as const;
+export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
 export const DEAL_TYPES = ['new_business', 'expansion'] as const;
 export type DealType = (typeof DEAL_TYPES)[number];

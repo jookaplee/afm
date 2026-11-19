@@ -192,9 +192,59 @@ CREATE TABLE IF NOT EXISTS wa_messages (
   phone       TEXT NOT NULL,
   body        TEXT NOT NULL,
   template_id INTEGER REFERENCES wa_templates(id) ON DELETE SET NULL,
-  created_at  TEXT NOT NULL
+  created_at  TEXT NOT NULL,
+  -- out: from us; in: from the customer
+  direction   TEXT NOT NULL DEFAULT 'out',
+  -- user (a person), agent (the AI) or contact (the customer)
+  author      TEXT NOT NULL DEFAULT 'user',
+  -- opened (wa.me), draft (waiting for approval), sent/delivered/read/failed (Business API), received
+  status      TEXT NOT NULL DEFAULT 'opened',
+  wa_id       TEXT,
+  error       TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_wa_messages_lead ON wa_messages(lead_id, created_at);
+
+-- Product catalog and orders (taken on WhatsApp by the agent or entered by hand).
+CREATE TABLE IF NOT EXISTS products (
+  id          INTEGER PRIMARY KEY,
+  name        TEXT NOT NULL,
+  category    TEXT NOT NULL,
+  unit        TEXT NOT NULL,
+  price_sen   INTEGER NOT NULL,
+  min_qty     REAL,
+  stock       REAL,
+  description TEXT,
+  active      INTEGER NOT NULL DEFAULT 1,
+  created_at  TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS orders (
+  id               INTEGER PRIMARY KEY,
+  lead_id          INTEGER REFERENCES leads(id) ON DELETE SET NULL,
+  account_id       INTEGER REFERENCES accounts(id) ON DELETE SET NULL,
+  status           TEXT NOT NULL,
+  total_sen        INTEGER NOT NULL DEFAULT 0,
+  delivery_date    TEXT,
+  delivery_address TEXT,
+  notes            TEXT,
+  source           TEXT NOT NULL,
+  deal_id          INTEGER REFERENCES deals(id) ON DELETE SET NULL,
+  cancel_reason    TEXT,
+  created_at       TEXT NOT NULL,
+  updated_at       TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status, created_at);
+CREATE INDEX IF NOT EXISTS idx_orders_lead ON orders(lead_id);
+
+CREATE TABLE IF NOT EXISTS order_items (
+  id         INTEGER PRIMARY KEY,
+  order_id   INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  product_id INTEGER REFERENCES products(id) ON DELETE SET NULL,
+  name       TEXT NOT NULL,
+  unit       TEXT NOT NULL,
+  qty        REAL NOT NULL,
+  price_sen  INTEGER NOT NULL
+);
 `;
 
 /** Columns added after the first release; older databases get them on open. */
@@ -215,6 +265,17 @@ const ADDED_COLUMNS: [table: string, column: string, type: string][] = [
   ['accounts', 'agent_note', 'TEXT'],
   ['leads', 'wa_status', 'TEXT'],
   ['leads', 'wa_replied_at', 'TEXT'],
+  ['wa_messages', 'direction', "TEXT NOT NULL DEFAULT 'out'"],
+  ['wa_messages', 'author', "TEXT NOT NULL DEFAULT 'user'"],
+  ['wa_messages', 'status', "TEXT NOT NULL DEFAULT 'opened'"],
+  ['wa_messages', 'wa_id', 'TEXT'],
+  ['wa_messages', 'error', 'TEXT'],
+  // WhatsApp conversation state per lead
+  ['leads', 'wa_last_in_at', 'TEXT'],
+  ['leads', 'wa_unread', 'INTEGER NOT NULL DEFAULT 0'],
+  ['leads', 'wa_needs_human', 'INTEGER NOT NULL DEFAULT 0'],
+  ['leads', 'wa_human_reason', 'TEXT'],
+  ['leads', 'wa_agent_off', 'INTEGER NOT NULL DEFAULT 0'],
 ];
 
 export function initSchema(db: Db): void {
@@ -243,6 +304,7 @@ export function isEmpty(db: Db): boolean {
 
 export function clearAll(db: Db): void {
   db.exec(`
+    DELETE FROM order_items; DELETE FROM orders; DELETE FROM products;
     DELETE FROM wa_messages; DELETE FROM wa_templates;
     DELETE FROM agent_findings; DELETE FROM agent_runs;
     DELETE FROM activities; DELETE FROM deals; DELETE FROM leads; DELETE FROM campaigns;

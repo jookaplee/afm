@@ -78,3 +78,63 @@ export const DEFAULT_WA_TEMPLATES: { name: string; body: string }[] = [
     body: 'Terima kasih {nama} atas masa anda tadi. Saya akan hantar maklumat dan harga yang kita bincangkan untuk {perniagaan}. — {nama_saya}, {syarikat_saya}',
   },
 ];
+
+// ---------- WhatsApp customer agent ----------
+
+export interface WaAgentSettings {
+  /** The agent answers incoming messages. */
+  enabled: boolean;
+  /** Send replies straight away (Business API only); otherwise they wait as drafts. */
+  autoSend: boolean;
+  model: string;
+  /** What the agent may tell customers: company, delivery, payment, hours, policies. */
+  profile: string;
+}
+
+export const DEFAULT_WA_PROFILE = `Syarikat: (nama syarikat anda)
+Produk: daging lembu, kambing, ayam dan makanan laut sejuk beku halal untuk restoran, kafe dan peniaga.
+Kawasan penghantaran: (contoh: Lembah Klang setiap hari; negeri lain melalui kurier sejuk)
+Pesanan minimum: (contoh: RM300 setiap penghantaran)
+Bayaran: (contoh: pindahan bank atau tunai semasa penghantaran; akaun kredit 30 hari untuk pelanggan tetap)
+Waktu operasi: (contoh: Isnin–Sabtu, 8 pagi – 6 petang)
+Lain-lain: (sijil halal, cara simpanan, polisi pemulangan)`;
+
+export const WA_AGENT_MODELS = ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5'] as const;
+
+export function normalizeWaAgentSettings(input: unknown): WaAgentSettings {
+  const s = (input && typeof input === 'object' ? input : {}) as Record<string, unknown>;
+  return {
+    enabled: typeof s.enabled === 'boolean' ? s.enabled : true,
+    autoSend: s.autoSend === true,
+    model: (WA_AGENT_MODELS as readonly unknown[]).includes(s.model) ? (s.model as string) : 'claude-opus-5-5',
+    profile: typeof s.profile === 'string' && s.profile.trim() ? s.profile.trim().slice(0, 4000) : DEFAULT_WA_PROFILE,
+  };
+}
+
+/** "RM1,234.50" from sen. */
+export function ringgit(sen: number): string {
+  return `RM${(sen / 100).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+/** What the WhatsApp agent knows about one conversation (GET /wa/agent/context). */
+export interface WaAgentContext {
+  agent: WaAgentSettings;
+  sender: WaSettings;
+  today: string;
+  lead: {
+    id: number;
+    name: string;
+    company: string;
+    phone: string | null;
+    status: string;
+    area: string | null;
+    region: string;
+    agent_off: number;
+    needs_human: number;
+  };
+  /** Oldest first; drafts left out. */
+  messages: { direction: 'in' | 'out'; author: string; body: string; at: string }[];
+  orders: { id: number; status: string; total_sen: number; delivery_date: string | null; items_summary: string | null; created_at: string }[];
+  products: number;
+}
+

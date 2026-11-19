@@ -7,6 +7,7 @@ import { importCrm, parseCrmInput } from './import-crm.ts';
 import { todayLocal } from '../shared/dates.ts';
 import { createApp } from './app.ts';
 import { createServerAgent } from './agent-runner.ts';
+import { createWaLive } from './wa-live.ts';
 
 const today = () => config.today ?? todayLocal();
 const db = openDb(config.dbPath);
@@ -25,6 +26,13 @@ if (isEmpty(db)) {
 }
 
 const agentRunner = config.agent ? createServerAgent({ db, today }) : undefined;
+const waLive = createWaLive({ db, today, config: { ...config.whatsapp, agent: config.agent } });
+if (waLive.live) console.log('WhatsApp Business API connected: webhook at /webhooks/whatsapp');
+// A public server with customer data and WhatsApp sending must not be open to everyone.
+if (waLive.live && process.env.NODE_ENV === 'production' && !config.auth) {
+  console.error('Set DASHBOARD_PASSWORD before running with WhatsApp connected in production.');
+  process.exit(1);
+}
 
 const app = createApp({
   db,
@@ -33,6 +41,9 @@ const app = createApp({
   allowReset: config.allowReset,
   resetBase,
   agentRunner,
+  waLive,
+  auth: config.auth,
+  waFlags: { live: waLive.live, agentServer: waLive.agentServer },
   staticDir: process.env.NODE_ENV === 'production' ? resolve(config.root, 'dist') : undefined,
 });
 
@@ -43,6 +54,7 @@ const server = app.listen(config.port, () => {
 
 const shutdown = () => {
   agentRunner?.stop();
+  waLive.stop();
   server.close(() => {
     db.close();
     process.exit(0);

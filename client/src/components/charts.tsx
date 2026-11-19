@@ -8,7 +8,7 @@ import { Hint } from './ui.tsx';
 
 /** Categorical slots in fixed order. Colour follows the entity, never its rank. */
 /** Slot 7 is neutral grey: the non-marketing "prospect list" channel (an "other" fold, not an eighth hue). */
-export const SERIES = ['var(--series-1)', 'var(--series-2)', 'var(--series-3)', 'var(--series-4)', 'var(--series-5)', 'var(--series-6)', 'var(--series-7)'];
+export const SERIES = ['var(--series-1)', 'var(--series-2)', 'var(--series-3)', 'var(--series-4)', 'var(--series-5)', 'var(--series-6)', 'var(--series-7)', 'var(--series-8)'];
 export const ORDINAL = ['var(--ord-1)', 'var(--ord-2)', 'var(--ord-3)', 'var(--ord-4)', 'var(--ord-5)'];
 
 export const axisProps = {

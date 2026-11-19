@@ -7,6 +7,7 @@ import { marketing, overview, parseFilters, sales } from './analytics.ts';
 import * as crud from './crud.ts';
 import * as agent from './agent-store.ts';
 import * as wa from './whatsapp-store.ts';
+import * as orders from './orders-store.ts';
 import { seed } from './seed.ts';
 import type { MetaResponse } from '../shared/types.ts';
 
@@ -20,6 +21,8 @@ export interface RouterOptions {
   resetBase?: () => unknown;
   /** The server runs the AI agent itself (ANTHROPIC_API_KEY set): starts a cycle in the background. */
   agentRunner?: { start: (accountId?: number) => { started: boolean; running: boolean } };
+  /** WhatsApp Business Platform connected / WhatsApp agent run by the server. */
+  waFlags?: { live: boolean; agentServer: boolean };
 }
 
 export interface ApiResult {
@@ -145,7 +148,7 @@ export function createRouter(opts: RouterOptions) {
   });
 
   // WhatsApp
-  on('GET', '/wa/summary', () => wa.summary(db, today()));
+  on('GET', '/wa/summary', () => wa.summary(db, today(), opts.waFlags));
   on('GET', '/wa/settings', () => wa.getSettings(db));
   on('PATCH', '/wa/settings', ({ body }) => wa.putSettings(db, body));
   on('GET', '/wa/contacts', ({ query }) => wa.listContacts(db, query));
@@ -159,6 +162,32 @@ export function createRouter(opts: RouterOptions) {
   });
   on('GET', '/wa/messages', ({ query }) => wa.listMessages(db, query));
   on('POST', '/wa/messages', ({ body }) => created(wa.recordMessage(db, body, today())));
+  on('PATCH', '/wa/messages/:id', ({ params, body }) => wa.updateMessage(db, id(params), body, today()));
+  on('DELETE', '/wa/messages/:id', ({ params }) => {
+    wa.deleteMessage(db, id(params));
+    return noContent;
+  });
+  on('POST', '/wa/inbound', ({ body }) => created(wa.recordInbound(db, body, today())));
+  on('GET', '/wa/agent/settings', () => wa.getAgentSettings(db));
+  on('PATCH', '/wa/agent/settings', ({ body }) => wa.putAgentSettings(db, body));
+  on('GET', '/wa/agent/context', ({ query }) => wa.agentContext(db, Number(query.lead_id), today()));
+  on('GET', '/wa/agent/products', ({ query }) =>
+    orders.searchProducts(db, typeof query.q === 'string' ? query.q : null, typeof query.category === 'string' ? query.category : null),
+  );
+
+  // Catalog & orders
+  on('GET', '/products', ({ query }) => orders.listProducts(db, query));
+  on('POST', '/products', ({ body }) => created(orders.createProduct(db, body, today())));
+  on('PATCH', '/products/:id', ({ params, body }) => orders.updateProduct(db, id(params), body));
+  on('DELETE', '/products/:id', ({ params }) => {
+    orders.deleteProduct(db, id(params));
+    return noContent;
+  });
+  on('GET', '/orders/summary', () => orders.orderSummary(db, today()));
+  on('GET', '/orders', ({ query }) => orders.listOrders(db, query));
+  on('GET', '/orders/:id', ({ params }) => orders.getOrder(db, id(params)));
+  on('POST', '/orders', ({ body }) => created(orders.createOrder(db, body)));
+  on('PATCH', '/orders/:id', ({ params, body }) => orders.updateOrder(db, id(params), body, today()));
 
   // Admin
   on('POST', '/admin/reset', () => {

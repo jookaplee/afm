@@ -34,6 +34,7 @@ warna yang telah disahkan selamat untuk buta warna (mod cerah & gelap).
 | **Akaun** | Pangkalan akaun (saiz Tier A/B/C, kategori, kawasan, PIC, telefon/WhatsApp, anggaran jualan, penilaian, keutamaan), butiran akaun dengan profil, laman web & media sosial, urus niaga, lead dan sejarah aktiviti |
 | **Pasukan** | Jurujual, peranan, fokus saiz akaun dan **kuota bulanan** (menjadi sasaran papan pemuka); tambah/nyahaktif ahli |
 | **WhatsApp** | Semua nombor telefon lead (mudah alih / talian tetap / tidak sah / dikongsi), templat mesej, penghantar mesej, mod kempen satu demi satu, tanda "dibalas" dan log mesej (lihat di bawah) |
+| **Pesanan** | Pesanan pelanggan (daripada ejen WhatsApp atau dimasukkan sendiri) mengikut status, butiran, sahkan/sediakan/hantar/batal, dan **katalog produk** dengan harga (lihat di bawah) |
 | **Ejen AI** | Ejen yang sentiasa menyemak data lead (telefon, PIC, alamat, e-mel, laman web, media sosial, masih beroperasi atau tidak) dan mencari lead baharu; setiap cadangan bersumber menunggu keputusan anda (lihat di bawah) |
 
 ### WhatsApp — hubungi lead terus
@@ -66,6 +67,76 @@ Mesej dihantar daripada akaun WhatsApp anda sendiri — tiada akaun Meta Busines
 Hantar secara berperingkat: terlalu banyak mesej tanpa diminta boleh menyebabkan nombor disekat.
 (Penghantaran automatik dan peti masuk balasan memerlukan WhatsApp Business Platform dengan pelayan
 awam untuk webhook.)
+
+### Ejen WhatsApp — jawab pelanggan & urus pesanan
+
+Ejen WhatsApp (Claude, lalai Claude Opus 5.5) membaca perbualan pelanggan dan:
+
+- menjawab soalan produk dan harga **hanya daripada katalog produk** dan *maklumat perniagaan* yang
+  anda isi (syarikat, kawasan penghantaran, pesanan minimum, bayaran, waktu operasi, polisi);
+- **mengambil pesanan**: mengesahkan item, kuantiti (kuantiti minimum dihormati), tarikh dan alamat
+  penghantaran, lalu mencipta pesanan berstatus *Menunggu pengesahan* — harga dan jumlah dikira oleh
+  pelayan daripada katalog, bukan oleh model; ia juga boleh menukar atau membatalkan pesanan yang
+  masih menunggu, dan menjawab soalan status pesanan;
+- **menyerahkan kepada staf** (banner merah *Perlu staf* dan penapis *Perlu staf*) untuk aduan,
+  bayaran/refund, permintaan diskaun atau harga khas, apa-apa di luar maklumat perniagaan, atau
+  apabila pelanggan meminta orang;
+- tidak mengikut arahan dalam mesej pelanggan yang cuba mengubah peraturan, harga atau polisi.
+
+Balasan ejen menjadi **draf** (Hantar / Sunting / Buang), atau dihantar terus jika *Hantar balasan
+secara automatik* dihidupkan (Business API sahaja). Ejen boleh dimatikan bagi setiap sembang.
+
+**Dua cara menggunakannya:**
+
+1. **Mod pembantu (tanpa akaun Meta)** — guna WhatsApp anda sendiri. Dalam sembang, tekan butang
+   *Mesej pelanggan* dan tampal mesej yang diterima; ejen menyediakan draf balasan (dan pesanan), dan
+   *Hantar* membukanya dalam WhatsApp melalui `wa.me`. Ejen dijalankan dalam pelayar dengan kunci API
+   di halaman *Ejen AI* (atau oleh pelayan jika `ANTHROPIC_API_KEY` ditetapkan). Butang yang sama
+   boleh digunakan untuk menguji ejen.
+2. **WhatsApp Business Platform (Cloud API)** — mesej pelanggan masuk sendiri melalui webhook dan
+   balasan dihantar dari papan pemuka, termasuk status ✓ / ✓✓ / dibaca. Perlu pelayan awam (lihat
+   *Menyambung WhatsApp Business API* di bawah). WhatsApp hanya membenarkan mesej bebas dalam
+   **24 jam** selepas mesej terakhir pelanggan; di luar tetingkap itu papan pemuka tidak menghantar
+   (mesej templat yang diluluskan Meta belum disokong).
+
+Pelanggan baharu yang menghantar mesej dicipta sebagai lead (saluran *WhatsApp masuk*).
+
+### Pesanan & katalog produk
+
+Halaman **Pesanan** menyenaraikan pesanan mengikut status: *Menunggu pengesahan → Disahkan → Sedang
+disediakan → Dihantar*, atau *Dibatalkan*. Item hanya boleh ditukar semasa menunggu. **Mengesahkan
+pesanan** merekodkannya sebagai urus niaga *dimenangi* (hasil pada papan pemuka), mencipta akaun jika
+lead belum ada akaun, dan menukar lead kepada pelanggan; membatalkan pesanan yang telah disahkan
+menukar urus niaga itu kepada *kalah*. Tab **Katalog produk** menyimpan nama, kategori, unit, harga
+(RM, sen tepat), kuantiti minimum, stok (pilihan) dan keterangan — ejen hanya menyebut produk aktif.
+
+### Menyambung WhatsApp Business API
+
+1. Di Meta for Developers, cipta aplikasi *Business*, tambah produk **WhatsApp**, daftarkan nombor
+   perniagaan (nombor itu tidak boleh digunakan serentak dalam aplikasi WhatsApp biasa) dan jana
+   token akses kekal (System User). Catat *Phone number ID* dan *App secret*.
+2. Pasang pelayan secara awam dengan HTTPS, cth. dengan Docker (`Dockerfile` disediakan; simpan
+   `/data` pada volum kekal):
+
+   ```bash
+   docker build -t joosons .
+   docker run -p 3001:3001 -v joosons-data:/data \
+     -e DASHBOARD_PASSWORD=... -e ANTHROPIC_API_KEY=... \
+     -e WHATSAPP_TOKEN=... -e WHATSAPP_PHONE_NUMBER_ID=... \
+     -e WHATSAPP_APP_SECRET=... -e WHATSAPP_VERIFY_TOKEN=rentetan-rawak joosons
+   ```
+
+   Import senarai prospek ke dalam pelayan itu dengan `npm run import`. Dalam mod produksi pelayan
+   **enggan bermula** jika WhatsApp disambungkan tanpa `DASHBOARD_PASSWORD` (log masuk HTTP Basic untuk
+   papan pemuka dan API; webhook kekal terbuka kerana ia disahkan dengan tandatangan Meta).
+3. Dalam aplikasi Meta → WhatsApp → *Configuration*: URL panggil balik
+   `https://domain-anda/webhooks/whatsapp`, token pengesahan = `WHATSAPP_VERIFY_TOKEN`, dan langgan
+   medan **messages**.
+4. Dalam papan pemuka → WhatsApp → *Ejen WhatsApp*: isi maklumat perniagaan, isi katalog produk, dan
+   pilih sama ada balasan dihantar automatik.
+
+Kos: Meta mengenakan caj mengikut perbualan/mesej WhatsApp Business; setiap balasan ejen menggunakan
+API Anthropic (dicaj ke akaun anda).
 
 ### Ejen AI — semakan data & pencarian lead
 
@@ -229,7 +300,11 @@ halaman (bukan `window.confirm`).
 | `DB_PATH` | `data/afm.db` | Lokasi fail SQLite |
 | `DATASET_PATH` | `data/import/crm-dataset.json` | Set data prospek yang diimport (digunakan semasa mula & set semula) |
 | `DATASET_PASSWORD` | dijana | Kata laluan untuk `npm run seal` |
-| `ANTHROPIC_API_KEY` | — | Jika ditetapkan, pelayan menjalankan autopilot Ejen AI sendiri |
+| `ANTHROPIC_API_KEY` | — | Jika ditetapkan, pelayan menjalankan autopilot Ejen AI dan ejen WhatsApp sendiri |
+| `DASHBOARD_PASSWORD`, `DASHBOARD_USER` | —, `admin` | Log masuk (HTTP Basic) untuk papan pemuka dan API; wajib dalam produksi apabila WhatsApp disambungkan |
+| `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_APP_SECRET` | — | Sambungan WhatsApp Business Platform (Cloud API) |
+| `WHATSAPP_VERIFY_TOKEN` | — | Token pengesahan webhook (rentetan rawak anda sendiri) |
+| `WHATSAPP_API_VERSION` | `v23.0` | Versi Graph API |
 | `AGENT` | — | `off` mematikan Ejen AI di pelayan walaupun kunci ditetapkan |
 | `APP_NAME` | `JOOSONS` | Nama yang dipaparkan di bar sisi |
 | `ALLOW_RESET` | `true` semasa pembangunan, `false` di produksi | Membenarkan `POST /api/admin/reset` |
@@ -265,7 +340,9 @@ server/   Express 5 + node:sqlite
   import-cli.ts arahan `npm run import`
   seal-cli.ts   arahan `npm run seal` (senarai prospek berkata laluan untuk Pages)
   agent-store.ts  Ejen AI: rancangan kitaran, simpan penemuan, terima/tolak
-  whatsapp-store.ts  WhatsApp: senarai nombor, templat, rekod mesej
+  whatsapp-store.ts  WhatsApp: senarai nombor, templat, mesej masuk/keluar, draf, konteks ejen
+  orders-store.ts    katalog produk & pesanan (disahkan → urus niaga dimenangi)
+  wa-live.ts         WhatsApp Business API: webhook, hantar, ejen di pelayan
   agent-runner.ts autopilot Ejen AI di pelayan (ANTHROPIC_API_KEY)
   analytics.ts  enjin KPI (ringkasan, jualan, pemasaran)
   crud.ts       urus niaga, lead (+penukaran), kempen, akaun
@@ -274,7 +351,8 @@ server/   Express 5 + node:sqlite
   app.ts        pembalut Express + penyajian binaan produksi
   tests/        ujian API (node:test)
 shared/agent.ts         tetapan, normalisasi nilai, prompt & skema laporan ejen
-shared/whatsapp.ts      jenis nombor, pautan wa.me, templat & ruang isi
+shared/whatsapp.ts      jenis nombor, pautan wa.me, templat & ruang isi, tetapan ejen WhatsApp
+shared/wa-agent.ts      ejen WhatsApp (Claude + alat katalog/pesanan/serah kepada staf)
 shared/agent-runner.ts  satu kitaran ejen (Anthropic SDK, carian web) - pelayar & pelayan
 client/   React 19 + Vite + Recharts
   lib/          i18n (BM/EN), format Ringgit, penapis URL, klien API
@@ -299,6 +377,11 @@ client/   React 19 + Vite + Recharts
 | `GET /api/wa/summary`, `GET /api/wa/contacts` | Ringkasan dan senarai nombor lead; penapis `stage` (`todo`/`sent`/`replied`), `type` (`mobile`/`landline`/`invalid`/`chat`), `wa`, `region`, `segment`, `search` |
 | `GET/POST /api/wa/templates`, `PATCH/DELETE /api/wa/templates/:id`, `GET/PATCH /api/wa/settings` | Templat mesej dan nama penghantar |
 | `GET/POST /api/wa/messages`, `PATCH /api/wa/leads/:id` | Log mesej / rekod mesej (lead baharu → dihubungi); tanda ada/tiada WhatsApp dan dibalas |
+| `POST /api/wa/inbound`, `PATCH/DELETE /api/wa/messages/:id` | Mesej pelanggan (tampal atau webhook); draf ejen: sunting, hantar, buang |
+| `GET/PATCH /api/wa/agent/settings`, `GET /api/wa/agent/context`, `POST /api/wa/agent/run` | Ejen WhatsApp: tetapan, konteks perbualan, jalankan di pelayan |
+| `POST /api/wa/send`, `GET/POST /webhooks/whatsapp` | Business API: hantar mesej / webhook Meta (pengesahan dan mesej masuk bertandatangan) |
+| `GET/POST /api/products`, `PATCH/DELETE /api/products/:id` | Katalog produk |
+| `GET/POST /api/orders`, `GET/PATCH /api/orders/:id`, `GET /api/orders/summary` | Pesanan: status `pending`→`confirmed`→`processing`→`delivered` atau `cancelled` |
 | `POST /api/agent/start` | Mulakan kitaran di pelayan (hanya jika `ANTHROPIC_API_KEY` ditetapkan) |
 | `GET /api/meta` | Senarai jurujual, kempen dan tarikh rujukan |
 
@@ -307,7 +390,8 @@ dipaparkan dalam bahasa pengguna oleh antara muka.
 
 ## Nota & pembangunan seterusnya
 
-- Belum ada pengesahan/kebenaran pengguna — tambah sebelum digunakan di rangkaian awam.
+- Log masuk pelayan ialah satu kata laluan bersama (`DASHBOARD_PASSWORD`); akaun berasingan bagi setiap
+  staf belum ada.
 - Data sebenar boleh dimasukkan melalui `npm run import`, API CRUD atau terus ke jadual SQLite
   (skema di `server/schema.ts`). Integrasi CRM (cth. Salesforce/HubSpot) dan iklan (Google/LinkedIn Ads)
   boleh ditambah sebagai tugas penyegerakan yang menulis ke jadual yang sama.

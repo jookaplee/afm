@@ -14,6 +14,7 @@ export function makeFormat(lang: 'ms' | 'en') {
   const dayMonth = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' });
   const monthYear = new Intl.DateTimeFormat(locale, { month: 'short', year: '2-digit', timeZone: 'UTC' });
   const monthYearLong = new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' });
+  const two = new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   // Timestamps (ISO) shown in the viewer's own time zone.
   const stamp = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   const clock = new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' });
@@ -22,6 +23,8 @@ export function makeFormat(lang: 'ms' | 'en') {
 
   return {
     locale,
+    /** Ringgit with sen from an amount in sen: "RM1,234.50". */
+    sen: (v: number | null | undefined) => (ok(v) ? `${v < 0 ? '−' : ''}RM${two.format(Math.abs(v) / 100)}` : DASH),
     /** "19 Nov, 10:30" for an ISO timestamp. */
     stamp: (iso: string | null | undefined) => (iso && !Number.isNaN(Date.parse(iso)) ? stamp.format(new Date(iso)) : DASH),
     /** "10:30" for an ISO timestamp or epoch ms. */
