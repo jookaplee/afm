@@ -20,7 +20,9 @@ if (js.length !== 1) throw new Error(`expected one script bundle, found ${js.len
 
 const read = (p) => readFileSync(join(dir, p), 'utf8');
 // "</script" inside the bundle would end the inline script early.
-const script = read(js[0]).replace(/<\/script/gi, '<\\/script');
+// A literal U+FFFD (used inside library strings) is written as its \uFFFD escape:
+// the same string at runtime, and hosts that reject U+FFFD in pages accept it.
+const script = read(js[0]).replace(/<\/script/gi, '<\\/script').replace(/\uFFFD/g, '\\uFFFD');
 const styles = css.map(read).join('\n').replace(/<\/style/gi, '<\\/style');
 const description = 'Papan pemuka Jualan &amp; Pemasaran B2B JOOSONS.';
 
