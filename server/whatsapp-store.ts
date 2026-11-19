@@ -74,12 +74,13 @@ interface ContactDb extends Omit<WaContact, 'intl' | 'phone_type' | 'shared'> {}
 function loadContacts(db: Db): WaContact[] {
   const rows = db
     .prepare(
-      `SELECT l.id AS lead_id, l.name, l.company, l.account_id, a.area, l.region, l.segment, l.industry, l.status, l.score,
+      `SELECT l.id AS lead_id, l.name, l.company, l.account_id, a.area, a.agent_note AS note, l.region, l.segment, l.industry, l.status, l.score,
          r.name AS owner_name, l.phone, l.wa_status, l.wa_replied_at,
          (SELECT COUNT(*) FROM wa_messages m WHERE m.lead_id = l.id) AS sent_count,
          (SELECT MAX(created_at) FROM wa_messages m WHERE m.lead_id = l.id) AS last_sent_at,
          (SELECT t.name FROM wa_messages m LEFT JOIN wa_templates t ON t.id = m.template_id
-            WHERE m.lead_id = l.id ORDER BY m.id DESC LIMIT 1) AS last_template
+            WHERE m.lead_id = l.id ORDER BY m.id DESC LIMIT 1) AS last_template,
+         (SELECT m.body FROM wa_messages m WHERE m.lead_id = l.id ORDER BY m.id DESC LIMIT 1) AS last_body
        FROM leads l
        LEFT JOIN accounts a ON a.id = l.account_id
        LEFT JOIN reps r ON r.id = l.owner_id
@@ -106,6 +107,8 @@ const str = (q: Query, k: string) => (typeof q[k] === 'string' && q[k] ? (q[k] a
  */
 export function listContacts(db: Db, q: Query): Paged<WaContact> {
   let rows = loadContacts(db);
+  const leadId = Number(q.lead_id);
+  if (Number.isInteger(leadId) && leadId > 0) rows = rows.filter((r) => r.lead_id === leadId);
   const stage = str(q, 'stage') ?? 'all';
   if (stage === 'todo') rows = rows.filter((r) => !r.sent_count && !['converted', 'disqualified'].includes(r.status) && r.wa_status !== 'no');
   else if (stage === 'sent') rows = rows.filter((r) => r.sent_count > 0 && !r.wa_replied_at);
@@ -129,10 +132,12 @@ export function listContacts(db: Db, q: Query): Paged<WaContact> {
       (r) => r.name.toLowerCase().includes(search) || r.company.toLowerCase().includes(search) || (digits.length >= 3 && r.phone.replace(/\D/g, '').includes(digits)),
     );
   }
-  const sort = str(q, 'sort') ?? (stage === 'sent' || stage === 'replied' ? 'recent' : 'score');
+  // Like a chat list: the latest conversations first, then the best prospects.
+  const sort = str(q, 'sort') ?? (stage === 'todo' ? 'score' : 'activity');
+  const lastActivity = (r: WaContact) => [r.wa_replied_at, r.last_sent_at].filter(Boolean).sort().pop() ?? '';
   rows.sort((a, b) =>
-    sort === 'recent'
-      ? String(b.wa_replied_at ?? b.last_sent_at ?? '').localeCompare(String(a.wa_replied_at ?? a.last_sent_at ?? '')) || b.lead_id - a.lead_id
+    sort === 'activity'
+      ? lastActivity(b).localeCompare(lastActivity(a)) || b.score - a.score || a.lead_id - b.lead_id
       : sort === 'name'
         ? a.company.localeCompare(b.company)
         : b.score - a.score || a.lead_id - b.lead_id,

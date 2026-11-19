@@ -8,7 +8,7 @@ import { useToast } from '../lib/app-context.tsx';
 import { errorMessage } from '../lib/errors.ts';
 import { Field, Loading, Modal } from '../components/ui.tsx';
 import { templateVars } from './compose.ts';
-import { PhoneBadges, WA_WINDOW } from './WaComposer.tsx';
+import { PhoneBadges, WA_WINDOW } from './ui.tsx';
 
 /**
  * Goes through the current contact list one lead at a time: each "open" sends
@@ -26,7 +26,9 @@ export function WaCampaign({ filters, templates, settings, onClose }: { filters:
 
   useEffect(() => {
     api
-      .get<Paged<WaContact>>('/wa/contacts', { ...filters, page: 1, pageSize: 1000 })
+      // "All" means everyone not contacted yet: a campaign never repeats itself by accident.
+      // The "sent" list gives a follow-up campaign on purpose.
+      .get<Paged<WaContact>>('/wa/contacts', { ...filters, stage: !filters.stage || filters.stage === 'all' ? 'todo' : filters.stage, sort: 'score', page: 1, pageSize: 1000 })
       .then((r) => setQueue(r.rows.filter((c) => c.intl && c.wa_status !== 'no')))
       .catch((e) => {
         toast(errorMessage(e, t), 'bad');

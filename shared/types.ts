@@ -417,6 +417,10 @@ export interface WaContact {
   sent_count: number;
   last_sent_at: string | null;
   last_template: string | null;
+  /** Text of the latest message, for the chat list preview. */
+  last_body: string | null;
+  /** The AI agent's summary of the business, if any (for AI drafts). */
+  note: string | null;
 }
 
 export interface WaMessageRow {

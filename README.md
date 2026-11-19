@@ -38,7 +38,13 @@ warna yang telah disahkan selamat untuk buta warna (mod cerah & gelap).
 
 ### WhatsApp — hubungi lead terus
 
-Halaman **WhatsApp** menyenaraikan setiap lead yang ada nombor telefon. Nombor dikelaskan secara
+Halaman **WhatsApp** direka seperti aplikasi WhatsApp: senarai sembang di kiri (avatar, pratonton mesej
+terakhir, masa, tanda ✓✓, cip *Semua / Belum dihubungi / Dihantar / Dibalas*) dan perbualan di kanan
+(gelembung mesej, pemisah tarikh, bar tulis mesej dengan templat dan draf AI), dengan mod cerah dan
+gelap. Pada telefon, senarai dan perbualan dipaparkan satu demi satu seperti aplikasi sebenar.
+Butang WhatsApp di halaman Lead dan Akaun terus membuka perbualan lead itu.
+
+Halaman ini menyenaraikan setiap lead yang ada nombor telefon. Nombor dikelaskan secara
 automatik: **mudah alih** (01x, biasanya ada WhatsApp), **talian tetap** (jarang ada WhatsApp),
 **tidak sah**, dan **dikongsi** (nombor sama pada beberapa lead, cth. ibu pejabat).
 
@@ -50,7 +56,8 @@ automatik: **mudah alih** (01x, biasanya ada WhatsApp), **talian tetap** (jarang
   WhatsApp (telefon) atau WhatsApp Web (komputer) melalui pautan `wa.me`. Anda menekan hantar dalam
   WhatsApp; papan pemuka merekod mesej dan menukar lead *Lead baharu* kepada *Dihubungi*.
 - **Mod kempen**: melalui senarai semasa satu demi satu (Buka WhatsApp & seterusnya / Langkau /
-  Tiada WhatsApp), menggunakan satu tetingkap WhatsApp yang sama.
+  Tiada WhatsApp), menggunakan satu tetingkap WhatsApp yang sama. Pada *Semua*, kempen hanya mengambil
+  lead yang belum dihubungi; pilih *Dihantar* untuk kempen susulan.
 - **Dibalas**: tandakan lead yang membalas (WhatsApp tidak membenarkan papan pemuka membaca balasan
   daripada akaun peribadi). Kadar balasan dipaparkan.
 - Butang WhatsApp juga ada di senarai **Lead** dan halaman **Akaun**.
