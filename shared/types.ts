@@ -1,3 +1,4 @@
+import type { AgentField, AgentSettings, Candidate, Confidence } from './agent.ts';
 import type {
   AbmTier,
   ActivityType,
@@ -57,7 +58,16 @@ export interface Account {
   /** JSON object of social links (facebook, instagram, tiktok, threads, youtube). */
   socials: string | null;
   source: string | null;
+  address: string | null;
+  email: string | null;
+  /** When the AI agent last checked this account (ISO timestamp). */
+  verified_at: string | null;
+  verify_status: VerifyStatus | null;
+  /** The agent's latest summary of the business. */
+  agent_note: string | null;
 }
+
+export type VerifyStatus = 'ok' | 'changed' | 'closed' | 'not_found';
 
 export interface Deal {
   id: number;
@@ -316,4 +326,53 @@ export interface MetaResponse {
   reps: Rep[];
   campaigns: Pick<Campaign, 'id' | 'name' | 'channel' | 'status'>[];
   dataRange: { min: string; max: string };
+}
+
+// ---------- AI agent ----------
+
+export type AgentFindingKind = 'update' | 'closed' | 'new_lead';
+export type AgentFindingStatus = 'pending' | 'accepted' | 'rejected' | 'auto' | 'superseded';
+
+export interface AgentFindingRow {
+  id: number;
+  run_id: number | null;
+  kind: AgentFindingKind;
+  account_id: number | null;
+  account_name: string | null;
+  field: AgentField | null;
+  old_value: string | null;
+  new_value: string | null;
+  /** The new business, for kind "new_lead". */
+  payload: Candidate | null;
+  confidence: Confidence;
+  sources: string[];
+  note: string | null;
+  status: AgentFindingStatus;
+  created_at: string;
+  decided_at: string | null;
+}
+
+export interface AgentRunRow {
+  id: number;
+  kind: 'verify' | 'discover' | 'cycle';
+  started_at: string;
+  finished_at: string;
+  model: string | null;
+  calls: number;
+  checked: number;
+  found: number;
+  searches: number;
+  input_tokens: number;
+  output_tokens: number;
+  error: string | null;
+}
+
+export interface AgentSummary {
+  settings: AgentSettings;
+  /** The server runs the agent itself; the browser only starts it. */
+  serverAgent: boolean;
+  findings: { pending: number; updates: number; closed: number; newLeads: number; accepted: number; rejected: number; auto: number };
+  accounts: { total: number; verified: number; due: number; closed: number; notFound: number; fromAgent: number };
+  today: { calls: number; limit: number; searches: number; inputTokens: number; outputTokens: number };
+  lastRun: AgentRunRow | null;
 }

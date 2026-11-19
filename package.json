@@ -21,6 +21,7 @@
     "seal": "node --disable-warning=ExperimentalWarning server/seal-cli.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.10.0",
     "express": "5.2.1"
   },
   "devDependencies": {

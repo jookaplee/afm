@@ -27,7 +27,7 @@ import { Field, Modal, Switch } from './ui.tsx';
 type Values = Record<string, string>;
 
 /** Shared form state + submit handling with server-side validation errors. */
-function useForm(initial: Values) {
+export function useForm(initial: Values) {
   const [values, setValues] = useState<Values>(initial);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -63,7 +63,7 @@ function useForm(initial: Values) {
 const toInt = (v: string) => (v.trim() === '' ? null : Number(v.replace(/[^\d-]/g, '')));
 const orNull = (v: string) => (v.trim() === '' ? null : v.trim());
 
-function FormShell({
+export function FormShell({
   title,
   onClose,
   onSubmit,
@@ -126,7 +126,7 @@ function FormShell({
   );
 }
 
-function EnumSelect({
+export function EnumSelect({
   id,
   value,
   onChange,
@@ -763,6 +763,8 @@ export function AccountFormModal({
     legal_name: account?.legal_name ?? '',
     contact_name: account?.contact_name ?? '',
     phone: account?.phone ?? '',
+    email: account?.email ?? '',
+    address: account?.address ?? '',
     sales_estimate: account?.sales_estimate != null ? String(account.sales_estimate) : '',
     owner_id: account?.owner_id ? String(account.owner_id) : '',
     tier: account?.tier ?? '',
@@ -780,6 +782,8 @@ export function AccountFormModal({
         legal_name: orNull(v.legal_name),
         contact_name: orNull(v.contact_name),
         phone: orNull(v.phone),
+        email: orNull(v.email),
+        address: orNull(v.address),
         sales_estimate: toInt(v.sales_estimate),
         owner_id: toInt(v.owner_id),
         tier: orNull(v.tier),
@@ -859,8 +863,14 @@ export function AccountFormModal({
           onChange={(e) => f.set('sales_estimate', e.target.value.replace(/[^\d]/g, ''))}
         />
       </Field>
-      <Field label={t('field.website')} error={f.errors.website} full htmlFor="ac-web">
+      <Field label={t('field.email')} error={f.errors.email} htmlFor="ac-email">
+        <input id="ac-email" className="input" type="email" value={v.email} onChange={(e) => f.set('email', e.target.value)} maxLength={120} />
+      </Field>
+      <Field label={t('field.website')} error={f.errors.website} htmlFor="ac-web">
         <input id="ac-web" className="input" value={v.website} onChange={(e) => f.set('website', e.target.value)} maxLength={200} />
+      </Field>
+      <Field label={t('field.address')} error={f.errors.address} full htmlFor="ac-address">
+        <input id="ac-address" className="input" value={v.address} onChange={(e) => f.set('address', e.target.value)} maxLength={300} />
       </Field>
     </FormShell>
   );

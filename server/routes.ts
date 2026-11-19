@@ -5,6 +5,7 @@ import type { Db } from './schema.ts';
 import { HttpError, type Query } from './http.ts';
 import { marketing, overview, parseFilters, sales } from './analytics.ts';
 import * as crud from './crud.ts';
+import * as agent from './agent-store.ts';
 import { seed } from './seed.ts';
 import type { MetaResponse } from '../shared/types.ts';
 
@@ -16,6 +17,8 @@ export interface RouterOptions {
   allowReset?: boolean;
   /** Rebuilds the starting data for POST /admin/reset. Defaults to the demo data generator. */
   resetBase?: () => unknown;
+  /** The server runs the AI agent itself (ANTHROPIC_API_KEY set): starts a cycle in the background. */
+  agentRunner?: { start: (accountId?: number) => { started: boolean; running: boolean } };
 }
 
 export interface ApiResult {
@@ -119,6 +122,26 @@ export function createRouter(opts: RouterOptions) {
   on('GET', '/reps', () => crud.listReps(db, today()));
   on('POST', '/reps', ({ body }) => created(crud.createRep(db, body, today())));
   on('PATCH', '/reps/:id', ({ params, body }) => crud.updateRep(db, id(params), body, today()));
+
+  // AI agent
+  const decidedAt = (body: unknown) => {
+    const at = (body as { at?: unknown } | null)?.at;
+    return typeof at === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(at) ? at : new Date().toISOString();
+  };
+  on('GET', '/agent/summary', () => agent.summary(db, today(), !!opts.agentRunner));
+  on('GET', '/agent/settings', () => agent.getSettings(db));
+  on('PATCH', '/agent/settings', ({ body }) => agent.putSettings(db, body));
+  on('GET', '/agent/plan', ({ query }) => agent.plan(db, query, today()));
+  on('POST', '/agent/runs', ({ body }) => created(agent.recordRun(db, body)));
+  on('GET', '/agent/runs', ({ query }) => agent.listRuns(db, query));
+  on('GET', '/agent/findings', ({ query }) => agent.listFindings(db, query));
+  on('POST', '/agent/findings/decide', ({ body }) => agent.decideMany(db, body, decidedAt(body), today()));
+  on('PATCH', '/agent/findings/:id', ({ params, body }) => agent.decide(db, id(params), body, decidedAt(body), today()));
+  on('POST', '/agent/start', ({ body }) => {
+    if (!opts.agentRunner) throw new HttpError(409, 'The AI agent runs in the browser on this server');
+    const accountId = Number((body as { accountId?: unknown } | null)?.accountId);
+    return opts.agentRunner.start(Number.isInteger(accountId) && accountId > 0 ? accountId : undefined);
+  });
 
   // Admin
   on('POST', '/admin/reset', () => {

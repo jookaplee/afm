@@ -55,7 +55,12 @@ CREATE TABLE IF NOT EXISTS accounts (
   rating         REAL,
   area           TEXT,
   socials        TEXT,
-  source         TEXT
+  source         TEXT,
+  address        TEXT,
+  email          TEXT,
+  verified_at    TEXT,
+  verify_status  TEXT,
+  agent_note     TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_accounts_segment ON accounts(segment, region);
 
@@ -132,6 +137,43 @@ CREATE TABLE IF NOT EXISTS activities (
 );
 CREATE INDEX IF NOT EXISTS idx_activities_rep ON activities(rep_id, date);
 CREATE INDEX IF NOT EXISTS idx_activities_account ON activities(account_id, date);
+
+-- AI agent: one row per cycle (verification and/or discovery of new leads).
+CREATE TABLE IF NOT EXISTS agent_runs (
+  id            INTEGER PRIMARY KEY,
+  kind          TEXT NOT NULL,
+  started_at    TEXT NOT NULL,
+  finished_at   TEXT NOT NULL,
+  model         TEXT,
+  calls         INTEGER NOT NULL DEFAULT 0,
+  checked       INTEGER NOT NULL DEFAULT 0,
+  found         INTEGER NOT NULL DEFAULT 0,
+  searches      INTEGER NOT NULL DEFAULT 0,
+  input_tokens  INTEGER NOT NULL DEFAULT 0,
+  output_tokens INTEGER NOT NULL DEFAULT 0,
+  error         TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_agent_runs_started ON agent_runs(started_at);
+
+-- What the agent proposes: a corrected field, a closed business or a new lead.
+CREATE TABLE IF NOT EXISTS agent_findings (
+  id          INTEGER PRIMARY KEY,
+  run_id      INTEGER REFERENCES agent_runs(id) ON DELETE SET NULL,
+  kind        TEXT NOT NULL,
+  account_id  INTEGER REFERENCES accounts(id) ON DELETE CASCADE,
+  field       TEXT,
+  old_value   TEXT,
+  new_value   TEXT,
+  payload     TEXT,
+  confidence  TEXT NOT NULL,
+  sources     TEXT,
+  note        TEXT,
+  status      TEXT NOT NULL DEFAULT 'pending',
+  created_at  TEXT NOT NULL,
+  decided_at  TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_agent_findings_status ON agent_findings(status, created_at);
+CREATE INDEX IF NOT EXISTS idx_agent_findings_account ON agent_findings(account_id);
 `;
 
 /** Columns added after the first release; older databases get them on open. */
@@ -145,6 +187,11 @@ const ADDED_COLUMNS: [table: string, column: string, type: string][] = [
   ['accounts', 'socials', 'TEXT'],
   ['accounts', 'source', 'TEXT'],
   ['leads', 'phone', 'TEXT'],
+  ['accounts', 'address', 'TEXT'],
+  ['accounts', 'email', 'TEXT'],
+  ['accounts', 'verified_at', 'TEXT'],
+  ['accounts', 'verify_status', 'TEXT'],
+  ['accounts', 'agent_note', 'TEXT'],
 ];
 
 export function initSchema(db: Db): void {
@@ -163,6 +210,7 @@ export function isEmpty(db: Db): boolean {
 
 export function clearAll(db: Db): void {
   db.exec(`
+    DELETE FROM agent_findings; DELETE FROM agent_runs;
     DELETE FROM activities; DELETE FROM deals; DELETE FROM leads; DELETE FROM campaigns;
     DELETE FROM accounts; DELETE FROM quotas; DELETE FROM reps; DELETE FROM meta;
   `);

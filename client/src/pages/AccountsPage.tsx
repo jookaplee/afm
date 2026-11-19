@@ -15,6 +15,7 @@ import { BarList, ChartCard, SERIES, SegmentedBar, StatTile } from '../component
 import { DataTable, type Column, type SortState } from '../components/DataTable.tsx';
 import { AccountFormModal } from '../components/forms.tsx';
 import { ContactLinks } from '../components/ContactLinks.tsx';
+import { VerifyMark } from '../components/VerifyMark.tsx';
 
 interface Summary {
   totals: { accounts: number; customers: number; revenue: number; pipeline: number };
@@ -53,7 +54,10 @@ export default function AccountsPage() {
       sortKey: 'name',
       render: (a) => (
         <div>
-          <div className="cell-main">{a.name}</div>
+          <div className="cell-main">
+            {a.name}
+            <VerifyMark status={a.verify_status} />
+          </div>
           <div className="cell-sub">{t(`industry.${a.industry}`)}</div>
         </div>
       ),

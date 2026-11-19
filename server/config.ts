@@ -14,4 +14,6 @@ export const config = {
   today: process.env.TODAY,
   /** Allow POST /api/admin/reset (re-generates demo data). Disabled in production unless set. */
   allowReset: process.env.ALLOW_RESET ? process.env.ALLOW_RESET === 'true' : process.env.NODE_ENV !== 'production',
+  /** The server runs the AI lead agent when an Anthropic API key is configured (AGENT=off disables it). */
+  agent: !!process.env.ANTHROPIC_API_KEY && process.env.AGENT !== 'off',
 };

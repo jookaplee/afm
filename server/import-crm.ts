@@ -155,6 +155,64 @@ export const DEFAULT_TEAM: [name: string, team: Segment][] = [
   ['Sales 2', 'smb'],
 ];
 
+export interface ProspectExtras {
+  address?: string | null;
+  email?: string | null;
+}
+
+/**
+ * Prepared insert of one prospect: the business as an account and its PIC as a
+ * new lead. Shared by the import and by new leads accepted from the AI agent.
+ */
+export function prospectInserter(db: Db, today: string): (r: CrmRecord, extras?: ProspectExtras) => number {
+  const insAccount = db.prepare(
+    `INSERT INTO accounts (name, industry, segment, region, employees, website, owner_id, tier, created_at,
+       legal_name, contact_name, phone, sales_estimate, rating, area, socials, source, address, email)
+     VALUES (?, ?, ?, ?, 0, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  );
+  const insLead = db.prepare(
+    `INSERT INTO leads (name, email, phone, title, company, industry, segment, region, channel, campaign_id, status,
+       score, owner_id, account_id, deal_id, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'prospect_list', NULL, 'new', ?, NULL, ?, NULL, ?)`,
+  );
+  return (r, extras = {}) => {
+    const name = clean(r.name)!;
+    const industry = categoryOf(r.category);
+    const segment = tierOf(r.salesValue);
+    const region = regionOf(r.primaryRegion, r.region);
+    const socials: Record<string, string> = {};
+    for (const k of ['facebook', 'instagram', 'tiktok', 'threads', 'youtube'] as const) {
+      const u = safeUrl(r[k]);
+      if (u) socials[k] = u;
+    }
+    const sales = Number(r.salesValue);
+    const rating = Number(r.ratingValue);
+    const email = clean(extras.email, 120);
+    const res = insAccount.run(
+      name,
+      industry,
+      segment,
+      region,
+      safeUrl(r.website),
+      ABM_FROM_TIER[segment],
+      today,
+      clean(r.company),
+      clean(r.owner, 120),
+      clean(r.phone, 40),
+      Number.isFinite(sales) && sales > 0 ? Math.round(sales) : null,
+      Number.isFinite(rating) && rating > 0 ? Math.round(rating * 10) / 10 : null,
+      clean(r.region, 300),
+      Object.keys(socials).length ? JSON.stringify(socials) : null,
+      clean(r.source, 200),
+      clean(extras.address, 300),
+      email,
+    );
+    const accountId = Number(res.lastInsertRowid);
+    insLead.run(clean(r.owner, 120) ?? name, email, clean(r.phone, 40), 'Pemilik / PIC', name, industry, segment, region, scoreOf(r), accountId, today);
+    return accountId;
+  };
+}
+
 // ---------- Import ----------
 
 /** Replaces everything in the database with the dataset. */
@@ -182,60 +240,8 @@ export function importCrm(db: Db, dataset: CrmDataset, opts: { today: string }):
     clearAll(db);
     const insRep = db.prepare('INSERT INTO reps (name, email, role, team, active) VALUES (?, ?, ?, ?, 1)');
     for (const [name, team] of DEFAULT_TEAM) insRep.run(name, '', 'AE', team);
-
-    const insAccount = db.prepare(
-      `INSERT INTO accounts (name, industry, segment, region, employees, website, owner_id, tier, created_at,
-         legal_name, contact_name, phone, sales_estimate, rating, area, socials, source)
-       VALUES (?, ?, ?, ?, 0, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    );
-    const insLead = db.prepare(
-      `INSERT INTO leads (name, email, phone, title, company, industry, segment, region, channel, campaign_id, status,
-         score, owner_id, account_id, deal_id, created_at)
-       VALUES (?, NULL, ?, ?, ?, ?, ?, ?, 'prospect_list', NULL, 'new', ?, NULL, ?, NULL, ?)`,
-    );
-
-    for (const r of rows) {
-      const name = clean(r.name)!;
-      const industry = categoryOf(r.category);
-      const segment = tierOf(r.salesValue);
-      const region = regionOf(r.primaryRegion, r.region);
-      const socials: Record<string, string> = {};
-      for (const k of ['facebook', 'instagram', 'tiktok', 'threads', 'youtube'] as const) {
-        const u = safeUrl(r[k]);
-        if (u) socials[k] = u;
-      }
-      const sales = Number(r.salesValue);
-      const rating = Number(r.ratingValue);
-      const res = insAccount.run(
-        name,
-        industry,
-        segment,
-        region,
-        safeUrl(r.website),
-        ABM_FROM_TIER[segment],
-        opts.today,
-        clean(r.company),
-        clean(r.owner, 120),
-        clean(r.phone, 40),
-        Number.isFinite(sales) && sales > 0 ? Math.round(sales) : null,
-        Number.isFinite(rating) && rating > 0 ? Math.round(rating * 10) / 10 : null,
-        clean(r.region, 300),
-        Object.keys(socials).length ? JSON.stringify(socials) : null,
-        clean(r.source, 200),
-      );
-      insLead.run(
-        clean(r.owner, 120) ?? name,
-        clean(r.phone, 40),
-        'Pemilik / PIC',
-        name,
-        industry,
-        segment,
-        region,
-        scoreOf(r),
-        Number(res.lastInsertRowid),
-        opts.today,
-      );
-    }
+    const insert = prospectInserter(db, opts.today);
+    for (const r of rows) insert(r);
     const meta = db.prepare('INSERT INTO meta (key, value) VALUES (?, ?)');
     meta.run('seeded_at', new Date().toISOString());
     meta.run('anchor_date', opts.today);

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, Mail, Pencil, Phone, Plus, Presentation, Users } from 'lucide-react';
+import { ArrowLeft, Calendar, Loader2, Mail, Pencil, Phone, Plus, Presentation, Sparkles, Users } from 'lucide-react';
 import type { ActivityType } from '../../../shared/constants.ts';
-import type { AccountDetail, DealRow, LeadRow } from '../../../shared/types.ts';
+import type { AccountDetail, AccountRow, AgentFindingRow, DealRow, LeadRow, Paged } from '../../../shared/types.ts';
 import { useApi } from '../lib/useApi.ts';
 import { useI18n } from '../lib/i18n.tsx';
 import { Card, ErrorState, LeadStatusBadge, Loading, PageHeader, StageBadge } from '../components/ui.tsx';
@@ -11,6 +11,39 @@ import { DataTable, type Column } from '../components/DataTable.tsx';
 import { AccountFormModal, DealFormModal } from '../components/forms.tsx';
 import { ContactLinks } from '../components/ContactLinks.tsx';
 import { socialLinks } from '../lib/contact.ts';
+import { agentEngine, useAgent, type AgentState } from '../agent/engine.ts';
+
+const VERIFY_BADGE: Record<string, string> = { ok: 'good', changed: 'warn', closed: 'bad', not_found: 'bad' };
+
+/** What the AI agent last found for this account, with a button to check it again now. */
+function VerifyCard({ a, pending, agent }: { a: AccountRow; pending: number; agent: AgentState }) {
+  const { t, fmt } = useI18n();
+  const canRun = (agent.runner === 'browser' && agent.hasKey) || agent.runner === 'server';
+  const status = a.verify_status ?? 'never';
+  return (
+    <section className="card verify-card" aria-label={t('account.verify.title')}>
+      <div className="verify-main">
+        <div className="kpi-label">{t('account.verify.title')}</div>
+        <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+          <span className={`badge ${VERIFY_BADGE[status] ?? ''}`}>{t(`account.verify.${status}`)}</span>
+          {a.verified_at && <span className="muted small">{t('account.verify.at', { time: fmt.stamp(a.verified_at) })}</span>}
+          {pending > 0 && (
+            <Link to="/agent" className="small">
+              {t('account.verify.pending', { n: pending })}
+            </Link>
+          )}
+        </div>
+        {a.agent_note && <p>{a.agent_note}</p>}
+      </div>
+      {canRun && (
+        <button className="btn sm" onClick={() => void agentEngine.run({ accountId: a.id, discover: false })} disabled={agent.running}>
+          {agent.running ? <Loader2 className="spin" aria-hidden /> : <Sparkles aria-hidden />}
+          {t('account.verify.checkNow')}
+        </button>
+      )}
+    </section>
+  );
+}
 
 const SOCIAL_LABEL: Record<string, string> = { facebook: 'Facebook', instagram: 'Instagram', tiktok: 'TikTok', threads: 'Threads', youtube: 'YouTube' };
 const safeHref = (u: string | null) => (u && /^https?:\/\//i.test(u) ? u : null);
@@ -21,7 +54,9 @@ export default function AccountDetailPage() {
   const { id } = useParams();
   const { t, fmt } = useI18n();
   const navigate = useNavigate();
-  const { data, error, loading, reload } = useApi<AccountDetail>(`/accounts/${id}`);
+  const agent = useAgent();
+  const { data, error, loading, reload } = useApi<AccountDetail>(`/accounts/${id}`, { v: agent.version });
+  const pendingFindings = useApi<Paged<AgentFindingRow>>('/agent/findings', { status: 'pending', accountId: id, pageSize: 1, v: agent.version });
   const [editing, setEditing] = useState(false);
   const [deal, setDeal] = useState<DealRow | 'new' | null>(null);
 
@@ -91,6 +126,7 @@ export default function AccountDetailPage() {
           <StatTile label={t('col.leads')} value={fmt.num(a.leads)} />
           <StatTile label={t('col.lastActivity')} value={fmt.date(a.last_activity)} />
         </div>
+        <VerifyCard a={a} pending={pendingFindings.data?.total ?? 0} agent={agent} />
         <div className="grid cols-3-1">
           <Card title={t('account.deals')} flush>
             <DataTable columns={dealCols} rows={data.deals} rowKey={(d) => d.id} onRowClick={(d) => setDeal(d)} />
@@ -109,6 +145,20 @@ export default function AccountDetailPage() {
               <dd>
                 <ContactLinks phone={a.phone} />
               </dd>
+              {a.email && (
+                <>
+                  <dt>{t('field.email')}</dt>
+                  <dd>
+                    <a href={`mailto:${a.email}`}>{a.email}</a>
+                  </dd>
+                </>
+              )}
+              {a.address && (
+                <>
+                  <dt>{t('account.address')}</dt>
+                  <dd>{a.address}</dd>
+                </>
+              )}
               <dt>{t('col.industry')}</dt>
               <dd>{t(`industry.${a.industry}`)}</dd>
               <dt>{t('col.segment')}</dt>

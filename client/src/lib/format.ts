@@ -14,11 +14,18 @@ export function makeFormat(lang: 'ms' | 'en') {
   const dayMonth = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' });
   const monthYear = new Intl.DateTimeFormat(locale, { month: 'short', year: '2-digit', timeZone: 'UTC' });
   const monthYearLong = new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' });
+  // Timestamps (ISO) shown in the viewer's own time zone.
+  const stamp = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  const clock = new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' });
   const ok = (v: number | null | undefined): v is number => v !== null && v !== undefined && Number.isFinite(v);
   const parse = (d: string) => new Date(`${d.length === 7 ? `${d}-01` : d}T00:00:00Z`);
 
   return {
     locale,
+    /** "19 Nov, 10:30" for an ISO timestamp. */
+    stamp: (iso: string | null | undefined) => (iso && !Number.isNaN(Date.parse(iso)) ? stamp.format(new Date(iso)) : DASH),
+    /** "10:30" for an ISO timestamp or epoch ms. */
+    clock: (v: string | number | null | undefined) => (v !== null && v !== undefined && !Number.isNaN(new Date(v).getTime()) ? clock.format(new Date(v)) : DASH),
     /** Full ringgit, e.g. "RM1,250,000". */
     money: (v: number | null | undefined) => (ok(v) ? `${v < 0 ? '−' : ''}RM${full.format(Math.abs(Math.round(v)))}` : DASH),
     /** Compact ringgit, e.g. "RM1.3J" (juta) / "RM450K"; English: "RM1.3M". */

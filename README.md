@@ -33,6 +33,43 @@ warna yang telah disahkan selamat untuk buta warna (mod cerah & gelap).
 | **Kempen** | Bajet, perbelanjaan sebenar, lead, MQL/SQL, pipeline, hasil dan ROI setiap kempen |
 | **Akaun** | Pangkalan akaun (saiz Tier A/B/C, kategori, kawasan, PIC, telefon/WhatsApp, anggaran jualan, penilaian, keutamaan), butiran akaun dengan profil, laman web & media sosial, urus niaga, lead dan sejarah aktiviti |
 | **Pasukan** | Jurujual, peranan, fokus saiz akaun dan **kuota bulanan** (menjadi sasaran papan pemuka); tambah/nyahaktif ahli |
+| **Ejen AI** | Ejen yang sentiasa menyemak data lead (telefon, PIC, alamat, e-mel, laman web, media sosial, masih beroperasi atau tidak) dan mencari lead baharu; setiap cadangan bersumber menunggu keputusan anda (lihat di bawah) |
+
+### Ejen AI — semakan data & pencarian lead
+
+Ejen ini menggunakan **Claude** (lalai: Claude Opus 5.5) dengan alat **carian web** dan **web fetch**
+Anthropic. Setiap kitaran:
+
+1. **Menyemak akaun** — akaun yang belum disemak didahulukan, kemudian yang paling lama (Tier A
+   dahulu). Claude mencari senarai Google, laman web, Facebook/Instagram/TikTok, GrabFood/Foodpanda dan
+   direktori, lalu melaporkan telefon, PIC, alamat, e-mel, laman web, media sosial, nama syarikat
+   berdaftar dan sama ada perniagaan masih beroperasi — **setiap nilai dengan URL sumber dan tahap
+   keyakinan**.
+2. **Mencari lead baharu** — bergilir mengikut kategori × kawasan (cth. "Restoran Halal Western ·
+   Zon Selatan"), dengan senarai nama sedia ada sebagai pengecualian.
+
+Laporan Claude dihantar melalui alat berstruktur (`strict`), kemudian dibersihkan: nombor telefon mesti
+format Malaysia yang sah, pautan mesti http(s), dan nilai tanpa sumber dibuang. Hasilnya:
+
+- nilai yang **sama** dengan data sedia ada → dikira "disahkan";
+- medan **kosong** + keyakinan tinggi → diisi automatik (boleh dimatikan; tidak pernah menulis ganti);
+- nilai **berbeza**, perniagaan **mungkin tutup** dan **lead baharu** → senarai *Perlu keputusan*
+  (Terima / Tolak). Nilai yang ditolak tidak dicadangkan semula; lead baharu yang sudah wujud (nama,
+  telefon atau laman web sama) diabaikan.
+
+**Di mana ia berjalan.** Pada pautan Safari / GitHub Pages: masukkan kunci API Anthropic di halaman
+*Ejen AI* (disimpan dalam pelayar itu sahaja); autopilot berjalan setiap *N* minit selagi papan pemuka
+dibuka, satu tab sahaja pada satu masa. Pada pelayan Express: tetapkan `ANTHROPIC_API_KEY` dan pelayan
+menjalankan autopilot sendiri walaupun tiada siapa membuka papan pemuka. Dalam claude.ai Artifact ejen
+tidak boleh berjalan (halaman tidak dibenarkan mencapai internet).
+
+**Kos & had.** Tetapan: model (Opus 5.5 / Sonnet 5.5 / Haiku 5.5), akaun setiap kitaran, lead baharu
+setiap kitaran, selang, **had panggilan sehari** dan tempoh semakan semula. Halaman memaparkan
+penggunaan hari ini dan anggaran kos token; carian web dicaj berasingan oleh Anthropic. Permintaan
+menggunakan *server-side fallback* Anthropic supaya permintaan yang ditolak oleh pengelas keselamatan
+dicuba semula pada model lain secara automatik (Opus/Sonnet sahaja).
+
+**Privasi.** Butiran akaun (nama perniagaan, telefon, PIC) dihantar kepada Anthropic untuk disemak.
 
 ## Cara menjalankan
 
@@ -160,6 +197,8 @@ halaman (bukan `window.confirm`).
 | `DB_PATH` | `data/afm.db` | Lokasi fail SQLite |
 | `DATASET_PATH` | `data/import/crm-dataset.json` | Set data prospek yang diimport (digunakan semasa mula & set semula) |
 | `DATASET_PASSWORD` | dijana | Kata laluan untuk `npm run seal` |
+| `ANTHROPIC_API_KEY` | — | Jika ditetapkan, pelayan menjalankan autopilot Ejen AI sendiri |
+| `AGENT` | — | `off` mematikan Ejen AI di pelayan walaupun kunci ditetapkan |
 | `APP_NAME` | `JOOSONS` | Nama yang dipaparkan di bar sisi |
 | `ALLOW_RESET` | `true` semasa pembangunan, `false` di produksi | Membenarkan `POST /api/admin/reset` |
 | `TODAY` | tarikh hari ini | Tetapkan "hari ini" (YYYY-MM-DD) untuk demo/ujian yang boleh diulang |
@@ -193,12 +232,16 @@ server/   Express 5 + node:sqlite
   import-crm.ts import senarai prospek CRM (HTML/JSON) → akaun + lead
   import-cli.ts arahan `npm run import`
   seal-cli.ts   arahan `npm run seal` (senarai prospek berkata laluan untuk Pages)
+  agent-store.ts  Ejen AI: rancangan kitaran, simpan penemuan, terima/tolak
+  agent-runner.ts autopilot Ejen AI di pelayan (ANTHROPIC_API_KEY)
   analytics.ts  enjin KPI (ringkasan, jualan, pemasaran)
   crud.ts       urus niaga, lead (+penukaran), kempen, akaun
   schema.ts     skema + jenis Db mudah alih (node:sqlite / sql.js)
   routes.ts     penghala API bebas pengangkutan (Express & pelayar)
   app.ts        pembalut Express + penyajian binaan produksi
   tests/        ujian API (node:test)
+shared/agent.ts         tetapan, normalisasi nilai, prompt & skema laporan ejen
+shared/agent-runner.ts  satu kitaran ejen (Anthropic SDK, carian web) - pelayar & pelayan
 client/   React 19 + Vite + Recharts
   lib/          i18n (BM/EN), format Ringgit, penapis URL, klien API
   standalone/   penyesuai sql.js + API dalam pelayar (versi kendiri)
@@ -216,6 +259,10 @@ client/   React 19 + Vite + Recharts
 | `GET/POST /api/campaigns`, `PATCH/DELETE /api/campaigns/:id` | Termasuk agregat lead/MQL/SQL/pipeline/hasil |
 | `GET/POST /api/accounts`, `GET /api/accounts/summary`, `GET/PATCH/DELETE /api/accounts/:id` | Butiran akaun termasuk urus niaga, lead dan aktiviti |
 | `GET/POST /api/reps`, `PATCH /api/reps/:id` | Pasukan jualan & kuota bulanan (`monthly_quota`) |
+| `GET /api/agent/summary`, `GET/PATCH /api/agent/settings`, `GET /api/agent/plan` | Status, tetapan dan kerja seterusnya Ejen AI |
+| `POST /api/agent/runs`, `GET /api/agent/runs` | Simpan hasil satu kitaran / log aktiviti |
+| `GET /api/agent/findings`, `PATCH /api/agent/findings/:id`, `POST /api/agent/findings/decide` | Penemuan ejen; terima atau tolak (satu atau banyak) |
+| `POST /api/agent/start` | Mulakan kitaran di pelayan (hanya jika `ANTHROPIC_API_KEY` ditetapkan) |
 | `GET /api/meta` | Senarai jurujual, kempen dan tarikh rujukan |
 
 Nilai enum dalam API (cth. `klang_valley`, `negotiation`) kekal dalam bahasa Inggeris; label

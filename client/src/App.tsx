@@ -17,6 +17,7 @@ import {
   Monitor,
   Moon,
   RefreshCcw,
+  Sparkles,
   Sun,
   Target,
   TrendingUp,
@@ -31,6 +32,7 @@ import { api } from './lib/api.ts';
 import { Loading, Modal } from './components/ui.tsx';
 import { useApi } from './lib/useApi.ts';
 import { forgetKey, sealedDataset } from './standalone/unlock.ts';
+import { agentEngine, useAgent } from './agent/engine.ts';
 
 // Pages carrying a password-protected prospect list can be locked again.
 const PROTECTED = STANDALONE && sealedDataset() !== null;
@@ -45,6 +47,7 @@ const CampaignsPage = lazy(() => import('./pages/CampaignsPage.tsx'));
 const AccountsPage = lazy(() => import('./pages/AccountsPage.tsx'));
 const AccountDetailPage = lazy(() => import('./pages/AccountDetailPage.tsx'));
 const TeamPage = lazy(() => import('./pages/TeamPage.tsx'));
+const AgentPage = lazy(() => import('./pages/AgentPage.tsx'));
 
 type Icon = ComponentType<{ 'aria-hidden'?: boolean }>;
 
@@ -54,6 +57,8 @@ interface NavItem {
   icon: Icon;
   /** Colour of the icon tile (macOS System Settings style). */
   tile: string;
+  /** Items waiting for the user (shown as a count). */
+  count?: number;
 }
 
 const DASHBOARDS = ['/', '/sales', '/marketing'];
@@ -82,6 +87,13 @@ export function App() {
   const [resetKey, setResetKey] = useState(0);
 
   useEffect(() => setMoreOpen(false), [location.pathname]);
+  // The AI agent's autopilot runs while the dashboard is open, whatever the page.
+  const agent = useAgent();
+  useEffect(() => agentEngine.boot(), []);
+  useEffect(() => {
+    if (resetKey) agentEngine.touched();
+  }, [resetKey]);
+  const agentPending = agent.summary?.findings.pending ?? 0;
   useEffect(() => {
     document.title = `${meta.appName} · ${t('app.subtitle')}`;
   }, [meta.appName, t]);
@@ -98,6 +110,7 @@ export function App() {
     { to: '/campaigns', label: t('nav.campaigns'), icon: Target, tile: 'var(--tile-purple)' },
     { to: '/accounts', label: t('nav.accounts'), icon: Building2, tile: 'var(--tile-gray)' },
     { to: '/team', label: t('nav.team'), icon: Users, tile: 'var(--tile-blue)' },
+    { to: '/agent', label: t('nav.agent'), icon: Sparkles, tile: 'var(--tile-purple)', count: agentPending },
   ];
   const groups = [
     { label: t('nav.dashboards'), items: dashboards },
@@ -172,6 +185,11 @@ export function App() {
                 >
                   <NavTile icon={it.icon} color={it.tile} />
                   {it.label}
+                  {!!it.count && (
+                    <span className="nav-count" aria-label={t('agent.kpi.pending')}>
+                      {it.count > 99 ? '99+' : it.count}
+                    </span>
+                  )}
                 </NavLink>
               ))}
             </div>
@@ -217,6 +235,7 @@ export function App() {
             <Route path="/accounts" element={<AccountsPage />} />
             <Route path="/accounts/:id" element={<AccountDetailPage />} />
             <Route path="/team" element={<TeamPage />} />
+            <Route path="/agent" element={<AgentPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
@@ -249,6 +268,7 @@ export function App() {
                 <Link key={it.to} to={it.to} className="list-row">
                   <NavTile icon={it.icon} color={it.tile} />
                   {it.label}
+                  {!!it.count && <span className="nav-count">{it.count > 99 ? '99+' : it.count}</span>}
                   <ChevronRight className="chev" aria-hidden />
                 </Link>
               ))}

@@ -2036,3 +2036,290 @@ table.data td:first-child {
 .lock-card .btn.ghost {
   align-self: center;
 }
+
+/* ==========================================================================
+   AI agent
+   ========================================================================== */
+.tab[aria-pressed='true'] {
+  background: var(--segment-on);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 0 0 0.5px rgba(0, 0, 0, 0.04);
+  font-weight: 600;
+}
+.small {
+  font-size: 12.5px;
+}
+.bad-text {
+  color: var(--critical-text);
+}
+.spin {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+  }
+}
+.agent-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(220px, 1fr);
+  gap: 24px;
+  padding: 20px 24px;
+  align-items: center;
+}
+.agent-hero-main {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+.agent-hero-usage {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.agent-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.agent-status svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  color: var(--accent);
+}
+.agent-status.bad,
+.agent-status.bad svg {
+  color: var(--critical-text);
+}
+.agent-last {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+.agent-setup {
+  display: grid;
+  gap: 12px;
+}
+.agent-setup p {
+  margin: 0;
+  line-height: 1.5;
+}
+.kpi-of {
+  font-size: 0.55em;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.finding-list {
+  display: grid;
+  gap: 12px;
+  padding: 4px 16px 16px;
+}
+.finding {
+  border: 0.5px solid var(--separator);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  min-width: 0;
+}
+.finding-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+}
+.finding-icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--fill);
+  color: var(--accent);
+  flex: none;
+}
+.finding-closed .finding-icon {
+  color: var(--critical-text);
+}
+.finding-icon svg {
+  width: 16px;
+  height: 16px;
+}
+.finding-title {
+  flex: 1 1 160px;
+  min-width: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.badge.conf-high {
+  color: var(--good-text);
+  background: var(--good-tint);
+}
+.badge.conf-medium {
+  color: var(--warning-text);
+  background: var(--warning-tint);
+}
+.finding-diff {
+  margin: 12px 0 0;
+}
+.finding-diff dt {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.finding-diff dd {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.finding-diff dd > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: var(--radius-xs);
+  background: var(--fill);
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.finding-diff .diff-new {
+  background: var(--good-tint);
+}
+.diff-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+.finding-body {
+  margin-top: 10px;
+  min-width: 0;
+}
+.finding-body p {
+  margin: 6px 0 0;
+  line-height: 1.45;
+}
+.dl.compact {
+  margin-top: 8px;
+  font-size: 13.5px;
+}
+.dl.compact dt,
+.dl.compact dd {
+  padding: 6px 0;
+}
+.finding-sources {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 12.5px;
+}
+.finding-sources .chip {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.finding-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+.nav-count {
+  margin-left: auto;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--critical);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-grid;
+  place-items: center;
+  font-variant-numeric: tabular-nums;
+}
+.verify-mark {
+  display: inline-flex;
+  vertical-align: -2px;
+  margin-left: 4px;
+}
+.verify-mark svg {
+  width: 14px;
+  height: 14px;
+}
+.verify-mark.ok {
+  color: var(--good-text);
+}
+.verify-mark.changed {
+  color: var(--warning-text);
+}
+.verify-mark.closed,
+.verify-mark.not_found {
+  color: var(--critical-text);
+}
+@media (max-width: 760px) {
+  .agent-hero {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 16px;
+  }
+  .finding-diff dd {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .finding-actions .btn {
+    flex: 1;
+  }
+}
+.verify-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+}
+.verify-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.verify-main p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+@media (max-width: 760px) {
+  .verify-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+.usage-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--fill);
+  overflow: hidden;
+}
+.usage-bar > div {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+}
+.tabs.wrap {
+  flex-wrap: wrap;
+  overflow: visible;
+}

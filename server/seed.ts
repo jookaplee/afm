@@ -344,6 +344,11 @@ export function seed(db: Db, opts: SeedOptions): SeedSummary {
       area: null,
       socials: null,
       source: null,
+      address: null,
+      email: null,
+      verified_at: null,
+      verify_status: null,
+      agent_note: null,
     };
     accounts.push(acc);
     return acc;

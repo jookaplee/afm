@@ -478,6 +478,8 @@ const accountSchema: Schema = {
   contact_name: { type: 'string', nullable: true, maxLen: 120 },
   phone: { type: 'string', nullable: true, maxLen: 40 },
   sales_estimate: { type: 'int', nullable: true, min: 0, max: 1e15 },
+  address: { type: 'string', nullable: true, maxLen: 300 },
+  email: { type: 'string', nullable: true, maxLen: 120 },
 };
 
 function accountWhere(q: Query) {
@@ -485,8 +487,10 @@ function accountWhere(q: Query) {
   const params: Params = [];
   const search = str(q, 'search');
   if (search) {
-    where.push(`(a.name LIKE ? ESCAPE '\\' OR a.legal_name LIKE ? ESCAPE '\\' OR a.contact_name LIKE ? ESCAPE '\\' OR a.phone LIKE ? ESCAPE '\\')`);
-    params.push(like(search), like(search), like(search), like(search));
+    where.push(
+      `(a.name LIKE ? ESCAPE '\\' OR a.legal_name LIKE ? ESCAPE '\\' OR a.contact_name LIKE ? ESCAPE '\\' OR a.phone LIKE ? ESCAPE '\\' OR a.address LIKE ? ESCAPE '\\')`,
+    );
+    params.push(like(search), like(search), like(search), like(search), like(search));
   }
   for (const [key, col, values] of [
     ['segment', 'a.segment', SEGMENTS],
