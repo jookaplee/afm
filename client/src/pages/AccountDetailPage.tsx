@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, Loader2, Mail, Pencil, Phone, Plus, Presentation, Sparkles, Users } from 'lucide-react';
+import { ArrowLeft, Calendar, Loader2, Mail, MessageCircle, Pencil, Phone, Plus, Presentation, Sparkles, Users } from 'lucide-react';
 import type { ActivityType } from '../../../shared/constants.ts';
 import type { AccountDetail, AccountRow, AgentFindingRow, DealRow, LeadRow, Paged } from '../../../shared/types.ts';
 import { useApi } from '../lib/useApi.ts';
@@ -12,6 +12,8 @@ import { AccountFormModal, DealFormModal } from '../components/forms.tsx';
 import { ContactLinks } from '../components/ContactLinks.tsx';
 import { socialLinks } from '../lib/contact.ts';
 import { agentEngine, useAgent, type AgentState } from '../agent/engine.ts';
+import { WaComposer } from '../whatsapp/WaComposer.tsx';
+import { phoneInfo } from '../../../shared/whatsapp.ts';
 
 const VERIFY_BADGE: Record<string, string> = { ok: 'good', changed: 'warn', closed: 'bad', not_found: 'bad' };
 
@@ -59,6 +61,7 @@ export default function AccountDetailPage() {
   const pendingFindings = useApi<Paged<AgentFindingRow>>('/agent/findings', { status: 'pending', accountId: id, pageSize: 1, v: agent.version });
   const [editing, setEditing] = useState(false);
   const [deal, setDeal] = useState<DealRow | 'new' | null>(null);
+  const [whatsapp, setWhatsapp] = useState<LeadRow | null>(null);
 
   const back = (
     <Link to="/accounts" className="btn ghost sm" style={{ alignSelf: 'flex-start' }}>
@@ -75,6 +78,8 @@ export default function AccountDetailPage() {
     );
   }
   const { account: a } = data;
+  // The account's first lead with a number that can take a WhatsApp chat.
+  const waLead = data.leads.find((l) => phoneInfo(l.phone).intl) ?? null;
 
   const dealCols: Column<DealRow>[] = [
     { key: 'name', header: t('col.deal'), render: (d) => <span className="cell-main">{d.name}</span> },
@@ -108,6 +113,12 @@ export default function AccountDetailPage() {
         subtitle={`${t(`industry.${a.industry}`)} · ${t(`segment.${a.segment}`)} · ${t(`region.${a.region}`)}`}
         actions={
           <>
+            {waLead && (
+              <button className="btn wa-send" onClick={() => setWhatsapp(waLead)}>
+                <MessageCircle aria-hidden />
+                {t('wa.sendWhatsapp')}
+              </button>
+            )}
             <button className="btn" onClick={() => setEditing(true)}>
               <Pencil aria-hidden />
               {t('common.edit')}
@@ -255,6 +266,24 @@ export default function AccountDetailPage() {
           </Card>
         </div>
       </div>
+      {whatsapp && (
+        <WaComposer
+          target={{
+            lead_id: whatsapp.id,
+            name: whatsapp.name,
+            company: whatsapp.company,
+            phone: whatsapp.phone,
+            region: whatsapp.region,
+            industry: whatsapp.industry,
+            area: a.area,
+            account_id: a.id,
+            wa_status: whatsapp.wa_status,
+            note: a.agent_note,
+          }}
+          onClose={() => setWhatsapp(null)}
+          onSent={reload}
+        />
+      )}
       {editing && (
         <AccountFormModal
           account={a}

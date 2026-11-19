@@ -1,6 +1,8 @@
 // Database schema and helpers that work with any SQLite binding exposing the
 // small synchronous API below: node:sqlite on the server, sql.js in the browser.
 
+import { DEFAULT_WA_TEMPLATES } from '../shared/whatsapp.ts';
+
 export type SqlValue = string | number | null;
 
 export interface Stmt {
@@ -174,6 +176,25 @@ CREATE TABLE IF NOT EXISTS agent_findings (
 );
 CREATE INDEX IF NOT EXISTS idx_agent_findings_status ON agent_findings(status, created_at);
 CREATE INDEX IF NOT EXISTS idx_agent_findings_account ON agent_findings(account_id);
+
+-- WhatsApp: message templates and every message opened from the dashboard.
+CREATE TABLE IF NOT EXISTS wa_templates (
+  id         INTEGER PRIMARY KEY,
+  name       TEXT NOT NULL,
+  body       TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS wa_messages (
+  id          INTEGER PRIMARY KEY,
+  lead_id     INTEGER REFERENCES leads(id) ON DELETE CASCADE,
+  account_id  INTEGER REFERENCES accounts(id) ON DELETE SET NULL,
+  phone       TEXT NOT NULL,
+  body        TEXT NOT NULL,
+  template_id INTEGER REFERENCES wa_templates(id) ON DELETE SET NULL,
+  created_at  TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_wa_messages_lead ON wa_messages(lead_id, created_at);
 `;
 
 /** Columns added after the first release; older databases get them on open. */
@@ -192,6 +213,8 @@ const ADDED_COLUMNS: [table: string, column: string, type: string][] = [
   ['accounts', 'verified_at', 'TEXT'],
   ['accounts', 'verify_status', 'TEXT'],
   ['accounts', 'agent_note', 'TEXT'],
+  ['leads', 'wa_status', 'TEXT'],
+  ['leads', 'wa_replied_at', 'TEXT'],
 ];
 
 export function initSchema(db: Db): void {
@@ -201,6 +224,16 @@ export function initSchema(db: Db): void {
     const cols = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
     if (!cols.some((c) => c.name === column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
   }
+  if (!isEmpty(db)) ensureWaTemplates(db, new Date().toISOString().slice(0, 10));
+}
+
+/** Adds the starting WhatsApp templates once (also after a reset or import). */
+export function ensureWaTemplates(db: Db, today: string): void {
+  const flag = db.prepare(`SELECT 1 FROM meta WHERE key = 'wa_templates'`).get();
+  if (flag) return;
+  const ins = db.prepare('INSERT INTO wa_templates (name, body, created_at) VALUES (?, ?, ?)');
+  for (const t of DEFAULT_WA_TEMPLATES) ins.run(t.name, t.body, today);
+  db.prepare(`INSERT INTO meta (key, value) VALUES ('wa_templates', '1')`).run();
 }
 
 export function isEmpty(db: Db): boolean {
@@ -210,6 +243,7 @@ export function isEmpty(db: Db): boolean {
 
 export function clearAll(db: Db): void {
   db.exec(`
+    DELETE FROM wa_messages; DELETE FROM wa_templates;
     DELETE FROM agent_findings; DELETE FROM agent_runs;
     DELETE FROM activities; DELETE FROM deals; DELETE FROM leads; DELETE FROM campaigns;
     DELETE FROM accounts; DELETE FROM quotas; DELETE FROM reps; DELETE FROM meta;

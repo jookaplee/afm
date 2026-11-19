@@ -2,7 +2,7 @@
 // company, amounts in RM). Everything is anchored to `today`, so the dashboards always show a
 // live-looking picture: ~2 years of history, open pipeline, active campaigns.
 
-import { clearAll, tx, type Db } from './schema.ts';
+import { clearAll, ensureWaTemplates, tx, type Db } from './schema.ts';
 import * as D from '../shared/dates.ts';
 import {
   INDUSTRIES,
@@ -725,6 +725,7 @@ export function seed(db: Db, opts: SeedOptions): SeedSummary {
     const meta = db.prepare('INSERT INTO meta (key, value) VALUES (?, ?)');
     meta.run('seeded_at', new Date().toISOString());
     meta.run('anchor_date', today);
+    ensureWaTemplates(db, today);
   });
 
   return {

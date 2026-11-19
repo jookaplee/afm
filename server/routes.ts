@@ -6,6 +6,7 @@ import { HttpError, type Query } from './http.ts';
 import { marketing, overview, parseFilters, sales } from './analytics.ts';
 import * as crud from './crud.ts';
 import * as agent from './agent-store.ts';
+import * as wa from './whatsapp-store.ts';
 import { seed } from './seed.ts';
 import type { MetaResponse } from '../shared/types.ts';
 
@@ -142,6 +143,22 @@ export function createRouter(opts: RouterOptions) {
     const accountId = Number((body as { accountId?: unknown } | null)?.accountId);
     return opts.agentRunner.start(Number.isInteger(accountId) && accountId > 0 ? accountId : undefined);
   });
+
+  // WhatsApp
+  on('GET', '/wa/summary', () => wa.summary(db, today()));
+  on('GET', '/wa/settings', () => wa.getSettings(db));
+  on('PATCH', '/wa/settings', ({ body }) => wa.putSettings(db, body));
+  on('GET', '/wa/contacts', ({ query }) => wa.listContacts(db, query));
+  on('PATCH', '/wa/leads/:id', ({ params, body }) => wa.updateLeadWa(db, id(params), body));
+  on('GET', '/wa/templates', () => wa.listTemplates(db));
+  on('POST', '/wa/templates', ({ body }) => created(wa.createTemplate(db, body, today())));
+  on('PATCH', '/wa/templates/:id', ({ params, body }) => wa.updateTemplate(db, id(params), body));
+  on('DELETE', '/wa/templates/:id', ({ params }) => {
+    wa.deleteTemplate(db, id(params));
+    return noContent;
+  });
+  on('GET', '/wa/messages', ({ query }) => wa.listMessages(db, query));
+  on('POST', '/wa/messages', ({ body }) => created(wa.recordMessage(db, body, today())));
 
   // Admin
   on('POST', '/admin/reset', () => {

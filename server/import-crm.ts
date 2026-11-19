@@ -5,7 +5,7 @@
 // Accepted input: the CRM's HTML file (with <script id="lead-data"> JSON),
 // or JSON - either the lead array itself or {leads, categories}.
 
-import { clearAll, tx, type Db } from './schema.ts';
+import { clearAll, ensureWaTemplates, tx, type Db } from './schema.ts';
 import { INDUSTRIES, type AbmTier, type Industry, type Region, type Segment } from '../shared/constants.ts';
 
 export interface CrmRecord {
@@ -246,6 +246,7 @@ export function importCrm(db: Db, dataset: CrmDataset, opts: { today: string }):
     meta.run('seeded_at', new Date().toISOString());
     meta.run('anchor_date', opts.today);
     meta.run('base', 'crm');
+    ensureWaTemplates(db, opts.today);
     return { reps: DEFAULT_TEAM.length, accounts: rows.length, leads: rows.length, merged, skipped };
   });
 }

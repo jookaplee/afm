@@ -33,7 +33,32 @@ warna yang telah disahkan selamat untuk buta warna (mod cerah & gelap).
 | **Kempen** | Bajet, perbelanjaan sebenar, lead, MQL/SQL, pipeline, hasil dan ROI setiap kempen |
 | **Akaun** | Pangkalan akaun (saiz Tier A/B/C, kategori, kawasan, PIC, telefon/WhatsApp, anggaran jualan, penilaian, keutamaan), butiran akaun dengan profil, laman web & media sosial, urus niaga, lead dan sejarah aktiviti |
 | **Pasukan** | Jurujual, peranan, fokus saiz akaun dan **kuota bulanan** (menjadi sasaran papan pemuka); tambah/nyahaktif ahli |
+| **WhatsApp** | Semua nombor telefon lead (mudah alih / talian tetap / tidak sah / dikongsi), templat mesej, penghantar mesej, mod kempen satu demi satu, tanda "dibalas" dan log mesej (lihat di bawah) |
 | **Ejen AI** | Ejen yang sentiasa menyemak data lead (telefon, PIC, alamat, e-mel, laman web, media sosial, masih beroperasi atau tidak) dan mencari lead baharu; setiap cadangan bersumber menunggu keputusan anda (lihat di bawah) |
+
+### WhatsApp — hubungi lead terus
+
+Halaman **WhatsApp** menyenaraikan setiap lead yang ada nombor telefon. Nombor dikelaskan secara
+automatik: **mudah alih** (01x, biasanya ada WhatsApp), **talian tetap** (jarang ada WhatsApp),
+**tidak sah**, dan **dikongsi** (nombor sama pada beberapa lead, cth. ibu pejabat).
+
+- **Templat** dengan ruang isi `{nama}`, `{perniagaan}`, `{kawasan}`, `{nama_saya}`, `{syarikat_saya}`;
+  empat templat permulaan (perkenalan, susulan, tawaran sampel, terima kasih) boleh disunting.
+  Nama penghantar dan syarikat ditetapkan sekali dalam *Tetapan*.
+- **Hantar**: mesej disediakan daripada templat (atau **Draf dengan AI** menggunakan kunci API Ejen AI),
+  boleh disunting, kemudian **Buka WhatsApp** membuka sembang dengan teks siap diisi dalam aplikasi
+  WhatsApp (telefon) atau WhatsApp Web (komputer) melalui pautan `wa.me`. Anda menekan hantar dalam
+  WhatsApp; papan pemuka merekod mesej dan menukar lead *Lead baharu* kepada *Dihubungi*.
+- **Mod kempen**: melalui senarai semasa satu demi satu (Buka WhatsApp & seterusnya / Langkau /
+  Tiada WhatsApp), menggunakan satu tetingkap WhatsApp yang sama.
+- **Dibalas**: tandakan lead yang membalas (WhatsApp tidak membenarkan papan pemuka membaca balasan
+  daripada akaun peribadi). Kadar balasan dipaparkan.
+- Butang WhatsApp juga ada di senarai **Lead** dan halaman **Akaun**.
+
+Mesej dihantar daripada akaun WhatsApp anda sendiri — tiada akaun Meta Business atau API diperlukan.
+Hantar secara berperingkat: terlalu banyak mesej tanpa diminta boleh menyebabkan nombor disekat.
+(Penghantaran automatik dan peti masuk balasan memerlukan WhatsApp Business Platform dengan pelayan
+awam untuk webhook.)
 
 ### Ejen AI — semakan data & pencarian lead
 
@@ -233,6 +258,7 @@ server/   Express 5 + node:sqlite
   import-cli.ts arahan `npm run import`
   seal-cli.ts   arahan `npm run seal` (senarai prospek berkata laluan untuk Pages)
   agent-store.ts  Ejen AI: rancangan kitaran, simpan penemuan, terima/tolak
+  whatsapp-store.ts  WhatsApp: senarai nombor, templat, rekod mesej
   agent-runner.ts autopilot Ejen AI di pelayan (ANTHROPIC_API_KEY)
   analytics.ts  enjin KPI (ringkasan, jualan, pemasaran)
   crud.ts       urus niaga, lead (+penukaran), kempen, akaun
@@ -241,6 +267,7 @@ server/   Express 5 + node:sqlite
   app.ts        pembalut Express + penyajian binaan produksi
   tests/        ujian API (node:test)
 shared/agent.ts         tetapan, normalisasi nilai, prompt & skema laporan ejen
+shared/whatsapp.ts      jenis nombor, pautan wa.me, templat & ruang isi
 shared/agent-runner.ts  satu kitaran ejen (Anthropic SDK, carian web) - pelayar & pelayan
 client/   React 19 + Vite + Recharts
   lib/          i18n (BM/EN), format Ringgit, penapis URL, klien API
@@ -262,6 +289,9 @@ client/   React 19 + Vite + Recharts
 | `GET /api/agent/summary`, `GET/PATCH /api/agent/settings`, `GET /api/agent/plan` | Status, tetapan dan kerja seterusnya Ejen AI |
 | `POST /api/agent/runs`, `GET /api/agent/runs` | Simpan hasil satu kitaran / log aktiviti |
 | `GET /api/agent/findings`, `PATCH /api/agent/findings/:id`, `POST /api/agent/findings/decide` | Penemuan ejen; terima atau tolak (satu atau banyak) |
+| `GET /api/wa/summary`, `GET /api/wa/contacts` | Ringkasan dan senarai nombor lead; penapis `stage` (`todo`/`sent`/`replied`), `type` (`mobile`/`landline`/`invalid`/`chat`), `wa`, `region`, `segment`, `search` |
+| `GET/POST /api/wa/templates`, `PATCH/DELETE /api/wa/templates/:id`, `GET/PATCH /api/wa/settings` | Templat mesej dan nama penghantar |
+| `GET/POST /api/wa/messages`, `PATCH /api/wa/leads/:id` | Log mesej / rekod mesej (lead baharu → dihubungi); tanda ada/tiada WhatsApp dan dibalas |
 | `POST /api/agent/start` | Mulakan kitaran di pelayan (hanya jika `ANTHROPIC_API_KEY` ditetapkan) |
 | `GET /api/meta` | Senarai jurujual, kempen dan tarikh rujukan |
 

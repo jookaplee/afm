@@ -15,6 +15,7 @@ import { ErrorState, LeadStatusBadge, PageHeader, Pager, SearchInput, SelectFilt
 import { DataTable, type Column, type SortState } from '../components/DataTable.tsx';
 import { ConvertLeadModal, LeadFormModal } from '../components/forms.tsx';
 import { ContactLinks } from '../components/ContactLinks.tsx';
+import { WaComposer } from '../whatsapp/WaComposer.tsx';
 
 type Tab = 'active' | LeadStatus | 'all';
 const TABS: Tab[] = ['active', 'new', 'mql', 'sql', 'converted', 'disqualified', 'all'];
@@ -33,6 +34,7 @@ export default function LeadsPage() {
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<LeadRow | 'new' | null>(null);
   const [converting, setConverting] = useState<LeadRow | null>(null);
+  const [whatsapp, setWhatsapp] = useState<LeadRow | null>(null);
   const q = useDebounced(search);
 
   const filters = useMemo(() => ({ status: tab === 'all' ? undefined : tab, search: q, channel, segment, owner }), [tab, q, channel, segment, owner]);
@@ -98,7 +100,7 @@ export default function LeadsPage() {
           <div className="cell-main truncate" title={l.name}>
             {l.name}
           </div>
-          <div className="cell-sub">{l.phone ? <ContactLinks phone={l.phone} compact /> : l.title}</div>
+          <div className="cell-sub">{l.phone ? <ContactLinks phone={l.phone} compact onWhatsApp={() => setWhatsapp(l)} /> : l.title}</div>
         </div>
       ),
       nowrap: true,
@@ -239,6 +241,13 @@ export default function LeadsPage() {
             setEditing(null);
             reload();
           }}
+        />
+      )}
+      {whatsapp && (
+        <WaComposer
+          target={{ lead_id: whatsapp.id, name: whatsapp.name, company: whatsapp.company, phone: whatsapp.phone, region: whatsapp.region, industry: whatsapp.industry, account_id: whatsapp.account_id, wa_status: whatsapp.wa_status }}
+          onClose={() => setWhatsapp(null)}
+          onSent={reload}
         />
       )}
       {converting && (

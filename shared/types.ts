@@ -1,4 +1,5 @@
 import type { AgentField, AgentSettings, Candidate, Confidence } from './agent.ts';
+import type { PhoneType, WaSettings } from './whatsapp.ts';
 import type {
   AbmTier,
   ActivityType,
@@ -120,7 +121,13 @@ export interface Lead {
   mql_at: string | null;
   sql_at: string | null;
   converted_at: string | null;
+  /** Whether the number has WhatsApp, as marked by the user (null = not checked). */
+  wa_status?: WaStatus | null;
+  /** When the lead replied on WhatsApp (marked by the user). */
+  wa_replied_at?: string | null;
 }
+
+export type WaStatus = 'yes' | 'no';
 
 export interface LeadRow extends Lead {
   owner_name: string | null;
@@ -375,4 +382,69 @@ export interface AgentSummary {
   accounts: { total: number; verified: number; due: number; closed: number; notFound: number; fromAgent: number };
   today: { calls: number; limit: number; searches: number; inputTokens: number; outputTokens: number };
   lastRun: AgentRunRow | null;
+}
+
+// ---------- WhatsApp ----------
+
+export interface WaTemplate {
+  id: number;
+  name: string;
+  body: string;
+  created_at: string;
+}
+
+/** A lead with a phone number, as listed on the WhatsApp page. */
+export interface WaContact {
+  lead_id: number;
+  name: string;
+  company: string;
+  account_id: number | null;
+  area: string | null;
+  region: Region;
+  segment: Segment;
+  industry: Industry;
+  status: LeadStatus;
+  score: number;
+  owner_name: string | null;
+  phone: string;
+  /** "60123456789" for wa.me, or null when the number cannot take a chat. */
+  intl: string | null;
+  phone_type: PhoneType;
+  /** Other leads with the same number (often a head office or agency line). */
+  shared: number;
+  wa_status: WaStatus | null;
+  wa_replied_at: string | null;
+  sent_count: number;
+  last_sent_at: string | null;
+  last_template: string | null;
+}
+
+export interface WaMessageRow {
+  id: number;
+  lead_id: number | null;
+  account_id: number | null;
+  phone: string;
+  body: string;
+  template_id: number | null;
+  template_name: string | null;
+  lead_name: string | null;
+  company: string | null;
+  created_at: string;
+}
+
+export interface WaSummary {
+  settings: WaSettings;
+  withPhone: number;
+  mobile: number;
+  landline: number;
+  invalid: number;
+  shared: number;
+  waYes: number;
+  waNo: number;
+  /** Leads that can take a chat and have not been messaged yet. */
+  todo: number;
+  contacted: number;
+  replied: number;
+  messages: number;
+  messagesToday: number;
 }

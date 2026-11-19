@@ -14,6 +14,7 @@ import {
   LayoutGrid,
   Lock,
   Megaphone,
+  MessageCircle,
   Monitor,
   Moon,
   RefreshCcw,
@@ -48,6 +49,7 @@ const AccountsPage = lazy(() => import('./pages/AccountsPage.tsx'));
 const AccountDetailPage = lazy(() => import('./pages/AccountDetailPage.tsx'));
 const TeamPage = lazy(() => import('./pages/TeamPage.tsx'));
 const AgentPage = lazy(() => import('./pages/AgentPage.tsx'));
+const WhatsAppPage = lazy(() => import('./pages/WhatsAppPage.tsx'));
 
 type Icon = ComponentType<{ 'aria-hidden'?: boolean }>;
 
@@ -107,6 +109,7 @@ export function App() {
     { to: '/pipeline', label: t('nav.pipeline'), icon: Columns3, tile: 'var(--tile-indigo)' },
     { to: '/deals', label: t('nav.deals'), icon: Handshake, tile: 'var(--tile-teal)' },
     { to: '/leads', label: t('nav.leads'), icon: UserPlus, tile: 'var(--tile-pink)' },
+    { to: '/whatsapp', label: t('nav.whatsapp'), icon: MessageCircle, tile: 'var(--tile-green)' },
     { to: '/campaigns', label: t('nav.campaigns'), icon: Target, tile: 'var(--tile-purple)' },
     { to: '/accounts', label: t('nav.accounts'), icon: Building2, tile: 'var(--tile-gray)' },
     { to: '/team', label: t('nav.team'), icon: Users, tile: 'var(--tile-blue)' },
@@ -236,6 +239,7 @@ export function App() {
             <Route path="/accounts/:id" element={<AccountDetailPage />} />
             <Route path="/team" element={<TeamPage />} />
             <Route path="/agent" element={<AgentPage />} />
+            <Route path="/whatsapp" element={<WhatsAppPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>

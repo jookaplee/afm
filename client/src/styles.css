@@ -2323,3 +2323,125 @@ table.data td:first-child {
   flex-wrap: wrap;
   overflow: visible;
 }
+
+/* ==========================================================================
+   WhatsApp
+   ========================================================================== */
+.btn.wa-send {
+  color: var(--good-text);
+  background: var(--good-tint);
+}
+.btn.wa-send:disabled {
+  color: var(--text-muted);
+  background: var(--fill);
+}
+.wa-setup {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+}
+.wa-setup h2 {
+  margin: 0 0 4px;
+  font-size: 17px;
+}
+.wa-setup p {
+  margin: 0;
+}
+.wa-phone-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.wa-compose {
+  display: grid;
+  gap: 14px;
+}
+.wa-compose textarea {
+  resize: vertical;
+  min-height: 140px;
+  line-height: 1.45;
+}
+.wa-to {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--fill);
+}
+.wa-to-phone {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.wa-warn {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: var(--radius-xs);
+  background: var(--warning-tint);
+  color: var(--warning-text);
+  font-size: 13px;
+}
+.wa-actions {
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+.wa-progress {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.wa-templates {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+.wa-template {
+  border: 0.5px solid var(--separator);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+}
+.wa-preview {
+  margin: 8px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--text-secondary);
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+table.data .wa-preview {
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-width: 46ch;
+}
+@media (max-width: 760px) {
+  .wa-setup {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .wa-actions .btn {
+    flex: 1 1 auto;
+  }
+}
+.wa-template-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+}
+@media (max-width: 480px) {
+  .wa-template-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
