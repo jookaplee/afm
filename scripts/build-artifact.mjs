@@ -7,6 +7,8 @@
 // DATASET=<file.json|file.html> embeds a prospect list (see `npm run import`)
 // as the starting data instead of the demo data. Keep personal data out of
 // pages you publish publicly.
+// DATASET_SEALED=<file> embeds a password-protected prospect list instead (see
+// `npm run seal`): the page asks for the password and decrypts it in the browser.
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -38,6 +40,15 @@ if (process.env.DATASET) {
   datasetTag = `<script id="crm-dataset" type="application/json">${json.replace(/</g, '\\u003c')}</script>\n`;
   console.log(`Embedding dataset from ${process.env.DATASET} (${(json.length / 1024).toFixed(0)} KB)`);
 }
+if (process.env.DATASET_SEALED) {
+  if (datasetTag) throw new Error('Set DATASET or DATASET_SEALED, not both');
+  const sealed = JSON.parse(readFileSync(process.env.DATASET_SEALED, 'utf8'));
+  if (sealed?.v !== 1 || !sealed.ct || !sealed.iv || !sealed.salt) throw new Error('DATASET_SEALED is not a sealed dataset');
+  datasetTag = `<script id="crm-dataset-sealed" type="application/json">${JSON.stringify(sealed)}</script>\n`;
+  console.log(`Embedding password-protected dataset from ${process.env.DATASET_SEALED} (${(sealed.ct.length / 1024).toFixed(0)} KB)`);
+}
+// Pages with business contacts stay out of search engines.
+const robots = datasetTag ? '<meta name="robots" content="noindex, nofollow">\n' : '';
 const favicon =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23256abf'/%3E%3Crect x='7' y='17' width='4' height='8' rx='1.5' fill='%23fff'/%3E%3Crect x='14' y='12' width='4' height='13' rx='1.5' fill='%23fff'/%3E%3Crect x='21' y='7' width='4' height='18' rx='1.5' fill='%23fff'/%3E%3C/svg%3E";
 
@@ -58,7 +69,7 @@ const site = `<!doctype html>
 <meta name="color-scheme" content="light dark">
 <meta name="description" content="${description}">
 <meta name="apple-mobile-web-app-title" content="JOOSONS">
-<title>JOOSONS · Jualan &amp; Pemasaran</title>
+${robots}<title>JOOSONS · Jualan &amp; Pemasaran</title>
 <link rel="icon" type="image/svg+xml" href="${favicon}">
 <style>${styles}</style>
 </head>

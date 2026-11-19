@@ -12,6 +12,7 @@ import {
   Languages,
   LayoutDashboard,
   LayoutGrid,
+  Lock,
   Megaphone,
   Monitor,
   Moon,
@@ -29,6 +30,10 @@ import { OWN_THEME, STANDALONE } from './lib/env.ts';
 import { api } from './lib/api.ts';
 import { Loading, Modal } from './components/ui.tsx';
 import { useApi } from './lib/useApi.ts';
+import { forgetKey, sealedDataset } from './standalone/unlock.ts';
+
+// Pages carrying a password-protected prospect list can be locked again.
+const PROTECTED = STANDALONE && sealedDataset() !== null;
 
 const OverviewPage = lazy(() => import('./pages/OverviewPage.tsx'));
 const SalesPage = lazy(() => import('./pages/SalesPage.tsx'));
@@ -116,6 +121,12 @@ export function App() {
     }
   };
 
+  const lockDevice = async () => {
+    if (!(await confirm({ message: t('lock.lockConfirm'), confirmLabel: t('lock.lockDevice') }))) return;
+    forgetKey();
+    window.location.reload();
+  };
+
   const ThemeIcon = mode === 'dark' ? Moon : mode === 'light' ? Sun : Monitor;
   const persistence = useApi<{ mode: 'cloud' | 'device' | 'memory' | 'readonly' }>(STANDALONE ? '/_persistence' : null, { k: resetKey });
   const pmode = persistence.data?.mode;
@@ -184,6 +195,12 @@ export function App() {
             <RefreshCcw aria-hidden />
             {t('action.resetData')}
           </button>
+          {PROTECTED && (
+            <button className="btn sm ghost" onClick={lockDevice}>
+              <Lock aria-hidden />
+              {t('lock.lockDevice')}
+            </button>
+          )}
         </div>
       </aside>
 
@@ -250,6 +267,12 @@ export function App() {
                   {t('lang.label')}
                   <span className="value">{lang === 'ms' ? 'Bahasa Malaysia' : 'English'}</span>
                 </button>
+                {PROTECTED && (
+                  <button className="list-row" onClick={lockDevice}>
+                    <NavTile icon={Lock} color="var(--tile-gray)" />
+                    {t('lock.lockDevice')}
+                  </button>
+                )}
                 <button className="list-row" onClick={resetData} style={{ color: 'var(--critical-text)' }}>
                   <NavTile icon={RefreshCcw} color="var(--tile-pink)" />
                   {t('action.resetData')}

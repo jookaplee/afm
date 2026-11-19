@@ -123,8 +123,23 @@ sentiasa berada di **https://jookaplee.github.io/afm/** dan boleh dibuka terus d
 pelayar lain) tanpa log masuk. Di sana perubahan disimpan dalam pelayar itu sendiri (localStorage),
 jadi ia kekal selepas muat semula pada peranti yang sama.
 
-> Pautan awam ini dibina **tanpa** senarai prospek (hanya data demo), kerana repositori dan
-> GitHub Pages boleh dibuka oleh sesiapa sahaja.
+**Senarai prospek dengan kata laluan.** Repositori dan GitHub Pages boleh dibuka oleh sesiapa
+sahaja (menjadikan repositori peribadi tidak menjadikan laman Pages peribadi), jadi senarai prospek
+tidak pernah diterbitkan dalam bentuk teks biasa. Sebaliknya ia disulitkan:
+
+```bash
+npm run seal                                  # daripada data/import/crm-dataset.json
+DATASET_PASSWORD='...' npm run seal -- <fail>  # guna kata laluan sendiri (≥12 aksara)
+```
+
+Arahan ini menulis `data/crm-dataset.sealed.json` (AES-256-GCM, kunci daripada kata laluan melalui
+PBKDF2-SHA256 600,000 lelaran). Tanpa `DATASET_PASSWORD`, kata laluan rawak yang kuat dijana dan
+dipaparkan **sekali sahaja** — ia tidak disimpan di mana-mana. Komit fail itu; aliran kerja Pages
+akan membenamkannya dan halaman akan meminta kata laluan sebelum memaparkan data (huruf besar/kecil,
+ruang dan sempang tidak diambil kira). Pilihan "Ingat pada peranti ini" menyimpan kunci terbitan
+(bukan kata laluan) dalam pelayar; "Kunci peranti ini" di bar sisi melupakannya. Halaman juga
+ditandakan `noindex` supaya tidak diindeks enjin carian. Untuk menukar kata laluan atau senarai,
+jalankan `npm run seal` semula dan komit fail baharu. Untuk kembali kepada data demo, padam fail itu.
 
 Tetapan sekali sahaja: **Settings → Pages → Build and deployment → Source: "Deploy from a branch"**,
 pilih branch `gh-pages` dan folder `/ (root)`.
@@ -144,6 +159,7 @@ halaman (bukan `window.confirm`).
 | `PORT` | `3001` | Port pelayan API |
 | `DB_PATH` | `data/afm.db` | Lokasi fail SQLite |
 | `DATASET_PATH` | `data/import/crm-dataset.json` | Set data prospek yang diimport (digunakan semasa mula & set semula) |
+| `DATASET_PASSWORD` | dijana | Kata laluan untuk `npm run seal` |
 | `APP_NAME` | `JOOSONS` | Nama yang dipaparkan di bar sisi |
 | `ALLOW_RESET` | `true` semasa pembangunan, `false` di produksi | Membenarkan `POST /api/admin/reset` |
 | `TODAY` | tarikh hari ini | Tetapkan "hari ini" (YYYY-MM-DD) untuk demo/ujian yang boleh diulang |
@@ -176,6 +192,7 @@ server/   Express 5 + node:sqlite
   seed.ts       penjana data demo deterministik (konteks Malaysia, RM)
   import-crm.ts import senarai prospek CRM (HTML/JSON) → akaun + lead
   import-cli.ts arahan `npm run import`
+  seal-cli.ts   arahan `npm run seal` (senarai prospek berkata laluan untuk Pages)
   analytics.ts  enjin KPI (ringkasan, jualan, pemasaran)
   crud.ts       urus niaga, lead (+penukaran), kempen, akaun
   schema.ts     skema + jenis Db mudah alih (node:sqlite / sql.js)

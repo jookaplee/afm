@@ -14,6 +14,7 @@ import { todayLocal } from '../../../shared/dates.ts';
 import { wrapSqlJs } from './sqljs-db.ts';
 import { browserStore, connectArtifactStore, type ChangeRecord, type Store } from './persistence.ts';
 import { datasetFingerprint, importCrm, parseCrmInput } from '../../../server/import-crm.ts';
+import { sealedDataset, unlockedDataset } from './unlock.ts';
 
 export type PersistenceMode = 'cloud' | 'device' | 'memory' | 'readonly';
 
@@ -236,14 +237,18 @@ export async function createLocalApi(deps: { SQL: SqlJsStatic; store: Store | nu
 let instance: ReturnType<typeof createLocalApi> | null = null;
 
 function api() {
+  // A locked page must never fall back to demo data: the base mismatch would
+  // start a fresh journal and drop the changes saved with the prospect list.
+  if (!instance && sealedDataset() && !unlockedDataset()) return Promise.reject(new Error('dataset_locked'));
   instance ??= (async () => {
     const [{ default: initSqlJs }, cloud] = await Promise.all([import('sql.js/dist/sql-asm-memory-growth.js'), connectArtifactStore()]);
     // Outside a claude.ai viewer (or when its database is unavailable) keep changes in this browser.
     const store = cloud ?? browserStore();
     const SQL = await initSqlJs();
-    // A prospect list embedded in the page (<script id="crm-dataset">) replaces the demo data.
+    // A prospect list embedded in the page replaces the demo data: either plain
+    // (<script id="crm-dataset">) or password-protected and already unlocked.
     const doc = (globalThis as { document?: { getElementById(id: string): { textContent: string | null } | null } }).document;
-    const embedded = doc?.getElementById('crm-dataset')?.textContent;
+    const embedded = unlockedDataset() ?? doc?.getElementById('crm-dataset')?.textContent;
     let base = DEMO_BASE;
     if (embedded && embedded.trim()) {
       try {

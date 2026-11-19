@@ -17,7 +17,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.server.json --noEmit",
     "test": "node --disable-warning=ExperimentalWarning --test \"server/tests/**/*.test.ts\"",
     "build:standalone": "vite build --mode standalone && node scripts/build-artifact.mjs",
-    "import": "node --disable-warning=ExperimentalWarning server/import-cli.ts"
+    "import": "node --disable-warning=ExperimentalWarning server/import-cli.ts",
+    "seal": "node --disable-warning=ExperimentalWarning server/seal-cli.ts"
   },
   "dependencies": {
     "express": "5.2.1"

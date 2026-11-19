@@ -1957,3 +1957,82 @@ table.data td:first-child {
   gap: 6px;
   justify-content: flex-end;
 }
+
+/* Password screen for a protected prospect list */
+.lock-screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+  box-sizing: border-box;
+  background: var(--page);
+}
+.lock-card {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding: 32px 24px 20px;
+  box-sizing: border-box;
+  background: var(--surface-1);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-pop);
+  text-align: center;
+}
+.lock-card h1 {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: -0.01em;
+}
+.lock-card p {
+  margin: 0 0 4px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.lock-icon {
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  color: #fff;
+  background: linear-gradient(180deg, #3a95ff, #0062e0);
+}
+.lock-icon svg {
+  width: 26px;
+  height: 26px;
+}
+.lock-card .input {
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+  font-size: 16px; /* no iOS zoom on focus */
+}
+.lock-error {
+  color: var(--critical-text);
+}
+.lock-remember {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+.lock-remember input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+.lock-submit {
+  justify-content: center;
+  min-height: 44px;
+}
+.lock-card .btn.ghost {
+  align-self: center;
+}

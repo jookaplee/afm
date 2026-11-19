@@ -2,6 +2,11 @@
 # latest finished version is always at https://<owner>.github.io/<repo>/ and
 # opens directly in Safari (or any browser) without signing in.
 #
+# When data/crm-dataset.sealed.json exists (see `npm run seal`), the page carries
+# that password-protected prospect list instead of the demo data: only
+# ciphertext is published, and the browser decrypts it after the password is
+# entered. The password itself is never stored in the repository.
+#
 # One-time setup: Settings -> Pages -> Build and deployment -> Source:
 # "Deploy from a branch", Branch: gh-pages, folder: / (root).
 name: Pages
@@ -29,7 +34,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
-      - run: npm run build:standalone
+      - name: Build the standalone page
+        run: |
+          if [ -f data/crm-dataset.sealed.json ]; then export DATASET_SEALED=data/crm-dataset.sealed.json; fi
+          npm run build:standalone
       - name: Push the site to the gh-pages branch
         working-directory: dist-standalone/site
         env:
