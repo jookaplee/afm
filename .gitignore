@@ -1,0 +1,9 @@
+node_modules/
+dist/
+data/*.db
+data/*.db-*
+*.log
+.DS_Store
+.env
+dist-standalone/
+data/import/

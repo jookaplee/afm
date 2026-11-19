@@ -1,0 +1,44 @@
+{
+  "name": "afm-sales-marketing-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sistem papan pemuka Jualan & Pemasaran B2B: pipeline, ramalan, prestasi pasukan, kempen, lead dan akaun.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c blue,green \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "node --disable-warning=ExperimentalWarning --watch-path=server --watch-path=shared server/index.ts",
+    "dev:web": "vite",
+    "build": "vite build",
+    "start": "NODE_ENV=production node --disable-warning=ExperimentalWarning server/index.ts",
+    "seed": "node --disable-warning=ExperimentalWarning server/seed-cli.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.server.json --noEmit",
+    "test": "node --disable-warning=ExperimentalWarning --test \"server/tests/**/*.test.ts\"",
+    "build:standalone": "vite build --mode standalone && node scripts/build-artifact.mjs",
+    "import": "node --disable-warning=ExperimentalWarning server/import-cli.ts",
+    "seal": "node --disable-warning=ExperimentalWarning server/seal-cli.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.10.0",
+    "express": "5.2.1"
+  },
+  "devDependencies": {
+    "@types/express": "5.0.6",
+    "@types/node": "22.20.5",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.7",
+    "@types/sql.js": "^1.4.11",
+    "@vitejs/plugin-react": "5.0.4",
+    "concurrently": "9.2.5",
+    "lucide-react": "0.544.0",
+    "react": "19.2.9",
+    "react-dom": "19.2.9",
+    "react-router-dom": "7.18.5",
+    "recharts": "3.2.1",
+    "sql.js": "^1.15.2",
+    "typescript": "5.9.3",
+    "vite": "7.3.7"
+  }
+}
